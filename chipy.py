@@ -15,6 +15,11 @@ class chipod:
         self.procdir = basedir + unit + '/proc/'
         self.chidir = basedir + unit + '/proc/' + chidir + '/chi/'
 
+        import os
+        # this lets me import sally's processed output
+        if not os.path.isdir(self.chidir):
+            self.chidir = basedir
+
         # nearby mooring instruments
         self.ctd = dict([])
         self.adcp = dict([])
@@ -43,6 +48,7 @@ class chipod:
 
     def LoadChiEstimates(self):
         ''' Loads all calculated chi estimates using h5py '''
+
         import os
         import glob
         import h5py
@@ -54,9 +60,39 @@ class chipod:
         self.χestimates = [os.path.basename(f)[4:-4] for f in files]
 
         for fname in files:
-            f = h5py.File(fname)
+            f = h5py.File(fname, 'r')
             est = os.path.basename(fname)[4:-4]
             self.chi[est] = f['chi']
+
+    def LoadSallyChiEstimate(self, fname, estname):
+        ''' fname - the mat file you want to read from.
+            estname - what you want to name the estimate.
+
+            Output saved as self.chi[estname] '''
+
+        import os
+        import glob
+        from scipy.io import loadmat
+
+        if not os.path.exists(fname):
+            raise FileNotFoundError(fname)
+
+        data = loadmat(fname)
+
+        chi = data['avgchi']
+        self.chi[estname + '1'] = dict()
+        self.chi[estname + '2'] = dict()
+
+        for field in chi.dtype.names:
+            temp = chi[field][0][0][0]
+            self.chi[estname + '1'][field] = temp
+            self.chi[estname + '2'][field] = temp
+
+        self.chi[estname + '1']['chi'] = self.chi[estname + '1']['chi1']
+        self.chi[estname + '2']['chi'] = self.chi[estname + '2']['chi2']
+
+        self.χestimates.append(estname+'1')
+        self.χestimates.append(estname+'2')
 
     def LoadPitot(self):
         ''' Load pitot data from proc/Praw.mat into self.pitot '''
@@ -80,7 +116,7 @@ class chipod:
         import numpy as np
         self.LoadChiEstimates()
 
-        for est in self.χestimates:
+        for est in self.chi.keys():
             chi = self.chi[est]['chi'][:]
             dTdz = self.chi[est]['dTdz'][:]
             KT = (0.5*chi)/dTdz**2
@@ -161,24 +197,22 @@ class chipod:
 
         if varname == 'chi':
             var = self.chi[est]['chi'][:].squeeze()
-            var[var < 0] = np.nan
             titlestr = 'χ'
 
         if varname == 'KT':
             self.CalcKT()
             var = self.KT[est][:].squeeze()
+            var[var < 0] = np.nan
             titlestr = 'K_T'
 
         if filter_len is not None:
             import bottleneck as bn
             var = bn.move_median(var, window=filter_len, min_count=filter_len/5)
-        else:
-            filter_len = 1
 
-        hax.plot_date(dcpy.util.datenum2datetime(time[0:-1:np.ceil(filter_len/10)]),
-                      var[0:-1:np.ceil(filter_len/10)], '-', label=est)
+        hax.plot_date(dcpy.util.datenum2datetime(time), var, '-', label=est)
         hax.set(yscale='log')
-        hax.set_title(titlestr + est)
+
+        hax.set_title(titlestr + ' ' + est + self.name)
 
     def CompareEstimates(self, varname, est1, est2, filter_len=None):
         import numpy as np
