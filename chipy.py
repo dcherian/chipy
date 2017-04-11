@@ -221,8 +221,7 @@ class chipod:
 
         plt.subplot(3,1,3)
         hax = plt.gca()
-        hax.hexbin(var1, var2,
-                   xscale='log', yscale='log', cmap=plt.cm.YlOrRd)
+        hax.hexbin(np.log10(var1), np.log10(var2),cmap=plt.cm.YlOrRd)
         hax.set_xlabel(titlestr + '_' + est1)
         hax.set_ylabel(titlestr + '_' + est2)
         dcpy.plots.line45()
