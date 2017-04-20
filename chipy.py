@@ -16,6 +16,7 @@ class chipod:
         self.chifile = basedir + unit + '/proc/combined/' + chifile
 
         self.χestimates = []
+        self.time = []
 
         # import os
         # this lets me import sally's processed output
@@ -81,26 +82,46 @@ class chipod:
             except:
                 self.chi[name] = f['Turb'][0, 0][field]
 
+        self.time = self.chi[self.χestimates[0]]['time'][0]
+
         # average together similar estimates
-        if 'mm1' in self.chi and 'mm2' in self.chi:
-            self.chi['mm'] = dict()
-            self.chi['mm']['chi'] = (self.chi['mm1']['chi']
-                                     + self.chi['mm2']['chi'])/2
+        for ff in ['mm', 'pm', 'mi', 'pi']:
+            self.AverageEstimates(self.chi, ff)
 
-        if 'mi11' in self.chi and 'mi22' in self.chi:
-            self.chi['mi'] = dict()
-            self.chi['mi']['chi'] = (self.chi['mi11']['chi']
-                                     + self.chi['mi22']['chi'])/2
+    def AverageEstimates(self, var, ff):
+        ''' Average like estimates in var. '''
 
-        if 'pm1' in self.chi and 'pm2' in self.chi:
-            self.chi['pm'] = dict()
-            self.chi['pm']['chi'] = (self.chi['pm1']['chi']
-                                     + self.chi['pm2']['chi'])/2
+        if 'i' in ff:
+            e1 = ff + '11'
+            e2 = ff + '22'
+        else:
+            e1 = ff + '1'
+            e2 = ff + '2'
 
-        if 'pi11' in self.chi and 'pi22' in self.chi:
-            self.chi['pi'] = dict()
-            self.chi['pi']['chi'] = (self.chi['pi11']['chi']
-                                     + self.chi['pi22']['chi'])/2
+        if e1 in var and e2 in var:
+            self.χestimates.append(ff)
+            var[ff] = dict()
+
+            import numpy
+            if type(var[e1]) == numpy.void:
+                var[ff]['chi'] = (var[e1]['chi']
+                                  + var[e2]['chi'])/2
+            else:  # KT
+                var[ff] = (var[e1] + var[e2])/2
+
+    def CalcKT(self):
+        self.LoadChiEstimates()
+
+        for est in self.χestimates:
+            if '1' in est or '2' in est:
+                # not a combined estimate
+                chi = self.chi[est]['chi'][:]
+                dTdz = self.chi[est]['dTdz'][:]
+                KT = (0.5*chi)/dTdz**2
+                self.KT[est] = KT
+
+        for ff in ['mm', 'mi', 'pm', 'pi']:
+            self.AverageEstimates(self.KT, ff)
 
     def LoadSallyChiEstimate(self, fname, estname):
         ''' fname - the mat file you want to read from.
@@ -109,7 +130,6 @@ class chipod:
             Output saved as self.chi[estname] '''
 
         import os
-        import glob
         from scipy.io import loadmat
 
         if not os.path.exists(fname):
@@ -149,15 +169,6 @@ class chipod:
         pitot['time'] = pitot['time'][0, 0]
         self.pitotrange = range(0, len(pitot['time'][0, 0]))
         self.pitot = pitot
-
-    def CalcKT(self):
-        self.LoadChiEstimates()
-
-        for est in self.χestimates:
-            chi = self.chi[est]['chi'][:]
-            dTdz = self.chi[est]['dTdz'][:]
-            KT = (0.5*chi)/dTdz**2
-            self.KT[est] = KT
 
     def PlotPitotRawVoltage(self, hax=None):
         import matplotlib.pyplot as plt
@@ -230,7 +241,7 @@ class chipod:
         if hax is None:
             hax = plt.gca()
 
-        time = self.chi[est]['time'][:].squeeze()
+        time = self.time
 
         if varname == 'chi':
             var = self.chi[est]['chi'][:].squeeze()
