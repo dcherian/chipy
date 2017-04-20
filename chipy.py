@@ -103,13 +103,13 @@ class chipod:
         pitot = hs.loadmat(rawname,
                            squeeze_me=True, struct_as_record=False)
         pitot = pitot['Praw']
-        w = pitot['W'][0,0]
-        pitot['W'][0,0][w > 1] = np.nan
-        pitot['W'][0,0][w < 0.4] = np.nan
+        w = pitot['W'][0, 0]
+        pitot['W'][0, 0][w > 1] = np.nan
+        pitot['W'][0, 0][w < 0.4] = np.nan
 
-        pitot['W'] = pitot['W'][0,0]
-        pitot['time'] = pitot['time'][0,0]
-        self.pitotrange = range(0, len(pitot['time'][0,0]))
+        pitot['W'] = pitot['W'][0, 0]
+        pitot['time'] = pitot['time'][0, 0]
+        self.pitotrange = range(0, len(pitot['time'][0, 0]))
         self.pitot = pitot
 
     def CalcKT(self):
@@ -142,10 +142,10 @@ class chipod:
         plt.figure()
         plt.subplot2grid((4,2), (0,0), colspan=2)
         plt.hold(True)
-        plt.plot_date(Tctd1.time, Tctd1.T, '-');
-        plt.plot_date(Tctd2.time, Tctd2.T, '-');
-        plt.plot_date(Tchi.time[chirange], Tchi.T1[chirange], '-');
-        plt.plot_date(Tchi.time[chirange], Tchi.T2[chirange], '-');
+        plt.plot_date(Tctd1.time, Tctd1.T, '-')
+        plt.plot_date(Tctd2.time, Tctd2.T, '-')
+        plt.plot_date(Tchi.time[chirange], Tchi.T1[chirange], '-')
+        plt.plot_date(Tchi.time[chirange], Tchi.T2[chirange], '-')
         plt.legend(["CTD {0:.0f} m".format(Tctd1.z),
                     "CTD {0:.0f} m".format(Tctd2.z),
                     "χ-pod 15 m T₁", "χ-pod 15m T₂"])
@@ -153,15 +153,15 @@ class chipod:
 
         plt.subplot2grid((4,2), (1,0), colspan=2)
         plt.hold(True)
-        plt.plot_date(Tchi.time[chirange], Tchi.T1[chirange], '-');
-        plt.plot_date(Tchi.time[chirange], Tchi.T2[chirange], '-');
+        plt.plot_date(Tchi.time[chirange], Tchi.T1[chirange], '-')
+        plt.plot_date(Tchi.time[chirange], Tchi.T2[chirange], '-')
         plt.legend(["χ-pod 15 m T₁", "χ-pod 15m T₂"])
         plt.ylabel('Temperature (C)')
 
         plt.subplot2grid((4,2),(2,0))
         plt.plot(Tctd1.T, Tctd2.T, '.')
-        plt.xlabel('CTD T at 10m');
-        plt.ylabel('CTD T at 20m');
+        plt.xlabel('CTD T at 10m')
+        plt.ylabel('CTD T at 20m')
         dcpy.plots.line45()
 
         plt.subplot2grid((4,2), (2,1))
@@ -207,7 +207,8 @@ class chipod:
 
         if filter_len is not None:
             import bottleneck as bn
-            var = bn.move_median(var, window=filter_len, min_count=filter_len/5)
+            var = bn.move_median(var, window=filter_len,
+                                 min_count=filter_len/5)
 
         hax.plot_date(dcpy.util.datenum2datetime(time), var, '-', label=est)
         hax.set(yscale='log')
@@ -219,7 +220,7 @@ class chipod:
         import matplotlib.pyplot as plt
         import dcpy.plots
 
-        time = self.chi[est1]['time'][0:-1:10]
+        # time = self.chi[est1]['time'][0:-1:10]
         if varname == 'chi':
             var1 = self.chi[est1]['chi'][:].squeeze()
             var1[var1 < 0] = np.nan
@@ -233,13 +234,13 @@ class chipod:
             var2 = self.KT[est2]
             titlestr = 'K_T'
 
-        plt.subplot(3,1,1)
+        plt.subplot(3, 1, 1)
         hax = plt.gca()
         self.PlotEstimate(varname, est1, hax, filter_len)
         self.PlotEstimate(varname, est2, hax, filter_len)
-        hax.set_title(titlestr)
+        hax.set_title(titlestr + ' | ' + self.name)
 
-        plt.subplot(3,1,2)
+        plt.subplot(3, 1, 2)
         hax = plt.gca()
         lv1 = np.log10(var1)
         lv2 = np.log10(var2)
@@ -253,9 +254,9 @@ class chipod:
         var1 = var1[~mask12]
         var2 = var2[~mask12]
 
-        plt.subplot(3,1,3)
+        plt.subplot(3, 1, 3)
         hax = plt.gca()
-        hax.hexbin(np.log10(var1), np.log10(var2),cmap=plt.cm.YlOrRd)
+        hax.hexbin(np.log10(var1), np.log10(var2), cmap=plt.cm.YlOrRd)
         hax.set_xlabel(titlestr + '_' + est1)
         hax.set_ylabel(titlestr + '_' + est2)
         dcpy.plots.line45()
