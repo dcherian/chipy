@@ -282,13 +282,13 @@ class chipod:
             var2 = self.KT[est2]
             titlestr = 'K_T'
 
-        plt.subplot(3, 1, 1)
+        plt.subplot(2, 2, (1, 2))
         hax = plt.gca()
         self.PlotEstimate(varname, est1, hax, filter_len)
         self.PlotEstimate(varname, est2, hax, filter_len)
         hax.set_title(titlestr + ' | ' + self.name)
 
-        plt.subplot(3, 1, 2)
+        plt.subplot(2, 2, 3)
         hax = plt.gca()
         lv1 = np.log10(var1)
         lv2 = np.log10(var2)
@@ -302,7 +302,7 @@ class chipod:
         var1 = var1[~mask12]
         var2 = var2[~mask12]
 
-        plt.subplot(3, 1, 3)
+        plt.subplot(2, 2, 4)
         hax = plt.gca()
         hax.hexbin(np.log10(var1), np.log10(var2), cmap=plt.cm.YlOrRd)
         hax.set_xlabel(titlestr + '_' + est1)
