@@ -1,24 +1,26 @@
 class chipod:
-    ''' Base class for chipod instruments.
+    """ Base class for chipod instruments.
         Depends heavily on output from chipod_gust routines.
         Represents chipod + ancillary data associated with that
         particular chipod
-    '''
+    """
 
-    def __init__(self, basedir, unit, chidir=''):
+    def __init__(self, basedir, unit, chifile=''):
         self.basedir = basedir
         self.unit = unit
-        self.name = unit + ' | ' + chidir
+        self.name = unit + ' | ' + chifile
 
         # setup dirs for chipod_gust
         self.inputdir = basedir + unit + '/input/'
         self.procdir = basedir + unit + '/proc/'
-        self.chidir = basedir + unit + '/proc/' + chidir + '/chi/'
+        self.chifile = basedir + unit + '/proc/combined/' + chifile
 
-        import os
+        self.χestimates = []
+
+        # import os
         # this lets me import sally's processed output
-        if not os.path.isdir(self.chidir):
-            self.chidir = basedir
+        # if not os.path.isdir(self.chidir):
+        #    self.chidir = basedir
 
         # nearby mooring instruments
         self.ctd = dict([])
@@ -41,28 +43,64 @@ class chipod:
 
     def LoadT1T2(self):
         ''' Loads data from internal χ-pod sensors '''
+        import scipy.io as spio
+
         mat = spio.loadmat(self.procdir + '/temp.mat',
                            struct_as_record=False, squeeze_me=True)
-        self.Tchi = mat['T'];
+        self.Tchi = mat['T']
         self.Tchi.time = dcpy.util.datenum2datetime(self.Tchi.time)
 
     def LoadChiEstimates(self):
         ''' Loads all calculated chi estimates using h5py '''
 
-        import os
-        import glob
-        import h5py
+        # import os
+        # import glob
 
         if not self.chi == dict([]):
             return
 
-        files = glob.glob(self.chidir + '/*.mat')
-        self.χestimates = [os.path.basename(f)[4:-4] for f in files]
+        # files = glob.glob(self.chidir + '/*.mat')
 
-        for fname in files:
-            f = h5py.File(fname, 'r')
-            est = os.path.basename(fname)[4:-4]
-            self.chi[est] = f['chi']
+        try:
+            import h5py
+            f = h5py.File(self.chifile, 'r')
+        except OSError:
+            # not an hdf5 file
+            from scipy.io import loadmat
+            f = loadmat(self.chifile)
+
+        for field in f['Turb'].dtype.names:
+            if field[0:4] == 'chi_':
+                name = field[4:]
+                self.χestimates.append(name)
+            else:
+                name = field
+
+            try:
+                self.chi[name] = f['Turb'][0, 0][field][0, 0]
+            except:
+                self.chi[name] = f['Turb'][0, 0][field]
+
+        # average together similar estimates
+        if 'mm1' in self.chi and 'mm2' in self.chi:
+            self.chi['mm'] = dict()
+            self.chi['mm']['chi'] = (self.chi['mm1']['chi']
+                                     + self.chi['mm2']['chi'])/2
+
+        if 'mi11' in self.chi and 'mi22' in self.chi:
+            self.chi['mi'] = dict()
+            self.chi['mi']['chi'] = (self.chi['mi11']['chi']
+                                     + self.chi['mi22']['chi'])/2
+
+        if 'pm1' in self.chi and 'pm2' in self.chi:
+            self.chi['pm'] = dict()
+            self.chi['pm']['chi'] = (self.chi['pm1']['chi']
+                                     + self.chi['pm2']['chi'])/2
+
+        if 'pi11' in self.chi and 'pi22' in self.chi:
+            self.chi['pi'] = dict()
+            self.chi['pi']['chi'] = (self.chi['pi11']['chi']
+                                     + self.chi['pi22']['chi'])/2
 
     def LoadSallyChiEstimate(self, fname, estname):
         ''' fname - the mat file you want to read from.
@@ -113,10 +151,9 @@ class chipod:
         self.pitot = pitot
 
     def CalcKT(self):
-        import numpy as np
         self.LoadChiEstimates()
 
-        for est in self.chi.keys():
+        for est in self.χestimates:
             chi = self.chi[est]['chi'][:]
             dTdz = self.chi[est]['dTdz'][:]
             KT = (0.5*chi)/dTdz**2
@@ -185,7 +222,7 @@ class chipod:
     def PlotEstimate(self, varname, est, hax=None, filter_len=None):
 
         import matplotlib.pyplot as plt
-        import dcpy
+        import dcpy.util
         import numpy as np
 
         self.LoadChiEstimates()
