@@ -26,27 +26,32 @@ class chipod:
         #    self.chidir = basedir
 
         # nearby mooring instruments
-        self.ctd = dict([])
+        self.ctd1 = dict()
+        self.ctd2 = dict()
         self.adcp = dict([])
 
         # derived quantities
-        self.chi = dict([])
-        self.KT = dict([])
+        self.chi = dict()
+        self.KT = dict()
+        self.Jq = dict()
 
         # read in quantities
         self.LoadChiEstimates()
         self.CalcKT()
+        # self.CalcJq()
 
     def LoadCTD(self):
         ''' Loads data from proc/T_m.mat '''
-        import hdf5storage as hs
-        import dcpy.util
 
-        mat = hs.loadmat(self.procdir + '/T_m.mat',
-                         struct_as_record=False, squeeze_me=True)
-        self.ctd1 = mat['T1']; self.ctd2 = mat['T2'];
-        self.ctd1.time = dcpy.util.datenum2datetime(self.ctd1.time)
-        self.ctd2.time = dcpy.util.datenum2datetime(self.ctd2.time)
+        if self.ctd1 == dict() or self.ctd2 == dict():
+            import hdf5storage as hs
+
+            mat = hs.loadmat(self.procdir + '/T_m.mat',
+                             struct_as_record=False, squeeze_me=True)
+            self.ctd1 = mat['T1']
+            self.ctd2 = mat['T2']
+            self.ctd1.time = self.ctd1.time - 367
+            self.ctd2.time = self.ctd2.time - 367
 
     def LoadT1T2(self):
         ''' Loads data from internal χ-pod sensors '''
@@ -55,7 +60,7 @@ class chipod:
         mat = spio.loadmat(self.procdir + '/temp.mat',
                            struct_as_record=False, squeeze_me=True)
         self.Tchi = mat['T']
-        self.Tchi.time = dcpy.util.datenum2datetime(self.Tchi.time)
+        self.Tchi.time = self.Tchi.time - 367
 
     def LoadChiEstimates(self):
         ''' Loads all calculated chi estimates using h5py '''
@@ -92,12 +97,11 @@ class chipod:
 
             # convert to matplotline datetime
             try:
-                self.chi[name]['time'] = dcpy.util.datenum2datetime(
-                    self.chi[name]['time'][0])
+                self.chi[name]['time'] = self.chi[name]['time'][0]-367
             except:
                 pass
 
-        self.time = self.chi[self.χestimates[0]]['time']
+        self.time = self.chi[self.χestimates[0]]['time'][0]
 
         # average together similar estimates
         for ff in ['mm', 'pm', 'mi', 'pi']:
@@ -139,6 +143,30 @@ class chipod:
 
         for ff in ['mm', 'mi', 'pm', 'pi']:
             self.AverageEstimates(self.KT, ff)
+
+    def CalcJq(self):
+        import seawater as sw
+        import numpy as np
+
+        self.LoadCTD()
+
+        T = (self.ctd1.T + self.ctd2.T)/2
+        S = (self.ctd1.S + self.ctd2.S)/2
+        P = float(self.depth)
+
+        cp = np.interp(self.time,
+                       self.ctd1.time, sw.cp(S, T, P))
+        ρ = np.interp(self.time,
+                      self.ctd1.time, sw.dens(S, T, P))
+
+        for est in self.χestimates:
+            if '1' in est or '2' in est:
+                KT = self.KT[est].squeeze()
+                dTdz = self.chi[est]['dTdz'].squeeze()
+                self.Jq[est] = -ρ * cp * KT * dTdz
+
+        for ff in ['mm', 'mi', 'pm', 'pi']:
+            self.AverageEstimates(self.Jq, ff)
 
     def LoadSallyChiEstimate(self, fname, estname):
         ''' fname - the mat file you want to read from.
