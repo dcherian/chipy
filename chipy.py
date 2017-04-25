@@ -5,7 +5,7 @@ class chipod:
         particular chipod
     """
 
-    def __init__(self, basedir, unit, chifile=''):
+    def __init__(self, basedir, unit, chifile='', best='', depth=0):
         self.basedir = basedir
         self.unit = unit
         self.name = unit + ' | ' + chifile
@@ -15,8 +15,10 @@ class chipod:
         self.procdir = basedir + unit + '/proc/'
         self.chifile = basedir + unit + '/proc/combined/' + chifile
 
+        self.depth = depth
         self.χestimates = []
         self.time = []
+        self.best = best
 
         # import os
         # this lets me import sally's processed output
@@ -30,6 +32,10 @@ class chipod:
         # derived quantities
         self.chi = dict([])
         self.KT = dict([])
+
+        # read in quantities
+        self.LoadChiEstimates()
+        self.CalcKT()
 
     def LoadCTD(self):
         ''' Loads data from proc/T_m.mat '''
@@ -57,6 +63,8 @@ class chipod:
         # import os
         # import glob
 
+        import dcpy.util
+
         if not self.chi == dict([]):
             return
 
@@ -82,7 +90,14 @@ class chipod:
             except:
                 self.chi[name] = f['Turb'][0, 0][field]
 
-        self.time = self.chi[self.χestimates[0]]['time'][0]
+            # convert to matplotline datetime
+            try:
+                self.chi[name]['time'] = dcpy.util.datenum2datetime(
+                    self.chi[name]['time'][0])
+            except:
+                pass
+
+        self.time = self.chi[self.χestimates[0]]['time']
 
         # average together similar estimates
         for ff in ['mm', 'pm', 'mi', 'pi']:
@@ -99,13 +114,15 @@ class chipod:
             e2 = ff + '2'
 
         if e1 in var and e2 in var:
-            self.χestimates.append(ff)
             var[ff] = dict()
-
+            var[ff]['time'] = self.time
             import numpy
             if type(var[e1]) == numpy.void:
+                self.χestimates.append(ff)
                 var[ff]['chi'] = (var[e1]['chi']
                                   + var[e2]['chi'])/2
+                var[ff]['N2'] = var[e1]['N2'][0]
+                var[ff]['dTdz'] = var[e1]['dTdz'][0]
             else:  # KT
                 var[ff] = (var[e1] + var[e2])/2
 
@@ -233,7 +250,6 @@ class chipod:
     def PlotEstimate(self, varname, est, hax=None, filter_len=None):
 
         import matplotlib.pyplot as plt
-        import dcpy.util
         import numpy as np
 
         self.LoadChiEstimates()
@@ -241,25 +257,37 @@ class chipod:
         if hax is None:
             hax = plt.gca()
 
-        time = self.time
+        try:
+            time = self.chi[est]['time'].squeeze()
+        except:
+            time = self.time
 
-        if varname == 'chi':
+        if varname == 'chi' or varname == 'χ':
             var = self.chi[est]['chi'][:].squeeze()
             titlestr = 'χ'
 
-        if varname == 'KT':
-            self.CalcKT()
+        if varname == 'KT' or varname == 'Kt':
+            # self.CalcKT()
             var = self.KT[est][:].squeeze()
             var[var < 0] = np.nan
             titlestr = 'K_T'
 
+        # N2 = self.chi[est]['N2'][:].squeeze()
+
+        # var[N2 < 5e-6] = np.nan
         if filter_len is not None:
+            if 'sally' in est:
+                filter_len = filter_len*10
+
             import bottleneck as bn
             var = bn.move_median(var, window=filter_len,
                                  min_count=filter_len/5)
 
-        hax.plot_date(dcpy.util.datenum2datetime(time), var, '-', label=est)
+        # dtime = dcpy.util.datenum2datetime(time)
+        hax.plot_date(time, var, '-', label=est)
         hax.set(yscale='log')
+        # hax.set_xlim([dtime[0], dtime[-1]])
+        plt.grid(True, which='both')
 
         hax.set_title(titlestr + ' ' + est + self.name)
 
@@ -271,9 +299,7 @@ class chipod:
         # time = self.chi[est1]['time'][0:-1:10]
         if varname == 'chi':
             var1 = self.chi[est1]['chi'][:].squeeze()
-            var1[var1 < 0] = np.nan
             var2 = self.chi[est2]['chi'][:].squeeze()
-            var2[var2 < 0] = np.nan
             titlestr = 'χ'
 
         if varname == 'KT':
@@ -298,7 +324,16 @@ class chipod:
                  alpha=0.5, normed=True, label=est2)
         hax.legend()
 
-        mask12 = np.isnan(var1) | np.isnan(var2)
+        try:
+            mask12 = np.isnan(var1) | np.isnan(var2)
+        except:
+            # should only run when comparing
+            # against sally's estimate.
+            t1 = self.chi[est1]['time'].squeeze()
+            t2 = self.chi[est2]['time'].squeeze()
+            var1 = np.interp(t2, t1, var1.squeeze())
+            mask12 = np.isnan(var1) | np.isnan(var2)
+
         var1 = var1[~mask12]
         var2 = var2[~mask12]
 
