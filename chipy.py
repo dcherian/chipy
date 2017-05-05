@@ -208,6 +208,10 @@ class chipod:
         self.chi[estname + '1']['chi'] = self.chi[estname + '1']['chi1']
         self.chi[estname + '2']['chi'] = self.chi[estname + '2']['chi2']
 
+        self.chi[estname + '1']['time'] = \
+                        self.chi[estname + '1']['time'] - 367
+        self.chi[estname + '2']['time'] = \
+                        self.chi[estname + '2']['time'] - 367
         self.χestimates.append(estname+'1')
         self.χestimates.append(estname+'2')
 
@@ -325,9 +329,8 @@ class chipod:
             grdflag = False
 
         if filter_len is not None:
-            if 'sally' in est:
-                filter_len = filter_len*10
-
+            dt = np.diff(time[0:2])*86400
+            filter_len /= dt
             import bottleneck as bn
             if varname == 'Jq':
                 var = bn.move_mean(var, window=filter_len,
