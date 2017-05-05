@@ -19,6 +19,7 @@ class chipod:
         self.χestimates = []
         self.time = []
         self.best = best
+        self.dt = []
 
         # import os
         # this lets me import sally's processed output
@@ -35,10 +36,10 @@ class chipod:
         self.KT = dict()
         self.Jq = dict()
 
-        # read in quantities
+        # read in χ and calculate derived quantities
         self.LoadChiEstimates()
         self.CalcKT()
-        # self.CalcJq()
+        self.CalcJq()
 
     def LoadCTD(self):
         ''' Loads data from proc/T_m.mat '''
@@ -68,8 +69,6 @@ class chipod:
         # import os
         # import glob
 
-        import dcpy.util
-
         if not self.chi == dict([]):
             return
 
@@ -95,13 +94,20 @@ class chipod:
             except:
                 self.chi[name] = f['Turb'][0, 0][field]
 
+            for fld in ['Jq', 'Kt', 'chi', 'dTdz', 'time', 'N2', 'T', 'S']:
+                try:
+                    self.chi[name][fld] = self.chi[name][fld][0]
+                except:
+                    pass
+
             # convert to matplotline datetime
             try:
-                self.chi[name]['time'] = self.chi[name]['time'][0]-367
+                self.chi[name]['time'] = self.chi[name]['time']-367
             except:
                 pass
 
-        self.time = self.chi[self.χestimates[0]]['time'][0]
+        self.time = self.chi[self.χestimates[0]]['time']
+        self.dt = (self.time[1] - self.time[0])*86400  # in seconds
 
         # average together similar estimates
         for ff in ['mm', 'pm', 'mi', 'pi']:
@@ -125,8 +131,8 @@ class chipod:
                 self.χestimates.append(ff)
                 var[ff]['chi'] = (var[e1]['chi']
                                   + var[e2]['chi'])/2
-                var[ff]['N2'] = var[e1]['N2'][0]
-                var[ff]['dTdz'] = var[e1]['dTdz'][0]
+                var[ff]['N2'] = var[e1]['N2']
+                var[ff]['dTdz'] = var[e1]['dTdz']
             else:  # KT
                 var[ff] = (var[e1] + var[e2])/2
 
@@ -136,10 +142,12 @@ class chipod:
         for est in self.χestimates:
             if '1' in est or '2' in est:
                 # not a combined estimate
-                chi = self.chi[est]['chi'][:]
-                dTdz = self.chi[est]['dTdz'][:]
-                KT = (0.5*chi)/dTdz**2
-                self.KT[est] = KT
+                if 'Kt' in self.chi[est]:
+                    self.KT[est] = self.chi[est]['Kt'][:]
+                else:
+                    chi = self.chi[est]['chi'][:]
+                    dTdz = self.chi[est]['dTdz'][:]
+                    self.KT[est] = (0.5*chi)/dTdz**2
 
         for ff in ['mm', 'mi', 'pm', 'pi']:
             self.AverageEstimates(self.KT, ff)
@@ -161,9 +169,15 @@ class chipod:
 
         for est in self.χestimates:
             if '1' in est or '2' in est:
-                KT = self.KT[est].squeeze()
-                dTdz = self.chi[est]['dTdz'].squeeze()
-                self.Jq[est] = -ρ * cp * KT * dTdz
+                if 'Jq' in self.chi[est]:
+                    Jq = self.chi[est]['Jq'][:]
+                else:
+                    KT = self.KT[est].squeeze()
+                    dTdz = self.chi[est]['dTdz'].squeeze()
+                    Jq = -ρ * cp * KT * dTdz
+
+                Jq[abs(Jq) > 1000] = np.nan
+                self.Jq[est] = Jq
 
         for ff in ['mm', 'mi', 'pm', 'pi']:
             self.AverageEstimates(self.Jq, ff)
@@ -292,30 +306,41 @@ class chipod:
 
         if varname == 'chi' or varname == 'χ':
             var = self.chi[est]['chi'][:].squeeze()
-            titlestr = 'χ'
+            titlestr = '$χ$'
+            yscale = 'log'
+            grdflag = True
 
         if varname == 'KT' or varname == 'Kt':
             # self.CalcKT()
             var = self.KT[est][:].squeeze()
             var[var < 0] = np.nan
-            titlestr = 'K_T'
+            titlestr = '$K_T$'
+            yscale = 'log'
+            grdflag = True
 
-        # N2 = self.chi[est]['N2'][:].squeeze()
+        if varname == 'Jq':
+            var = self.Jq[est]
+            titlestr = '$J_q$'
+            yscale = 'linear'
+            grdflag = False
 
-        # var[N2 < 5e-6] = np.nan
         if filter_len is not None:
             if 'sally' in est:
                 filter_len = filter_len*10
 
             import bottleneck as bn
-            var = bn.move_median(var, window=filter_len,
-                                 min_count=filter_len/5)
+            if varname == 'Jq':
+                var = bn.move_mean(var, window=filter_len,
+                                   min_count=filter_len/5)
+            else:
+                var = bn.move_median(var, window=filter_len,
+                                     min_count=filter_len/5)
 
         # dtime = dcpy.util.datenum2datetime(time)
         hax.plot_date(time, var, '-', label=est)
-        hax.set(yscale='log')
+        hax.set(yscale=yscale)
         # hax.set_xlim([dtime[0], dtime[-1]])
-        plt.grid(True, which='both')
+        plt.grid(grdflag, axis='y', which='major')
 
         hax.set_title(titlestr + ' ' + est + self.name)
 
