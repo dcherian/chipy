@@ -410,3 +410,36 @@ class chipod:
         dcpy.plots.line45()
         # lims = [1e-10, 1e-4]
         # plt.xlim(lims); plt.ylim(lims)
+
+    def Summarize(self, est='best', filter_len=None):
+
+        import matplotlib.pyplot as plt
+
+        if est == 'best':
+            est = self.best
+
+        ax1 = plt.subplot(5, 1, 1)
+        ax1.plot_date(self.time, self.chi[est]['N2'], '-', linewidth=0.5)
+        ax1.set_ylabel('$N^2$')
+
+        ax2 = plt.subplot(5, 1, 2)
+        ax2.plot_date(self.time, self.chi[est]['dTdz'], '-', linewidth=0.5)
+        ax2.set_ylabel('dT/dz')
+
+        ax3 = plt.subplot(5, 1, 3)
+        self.PlotEstimate('chi', est=est,
+                          filter_len=filter_len, hax=ax3)
+        ax3.set_title('')
+
+        ax4 = plt.subplot(5, 1, 4, sharex=ax1)
+        self.PlotEstimate('KT', est=est,
+                          filter_len=filter_len, hax=ax4)
+        ax4.set_title('')
+
+        ax5 = plt.subplot(5, 1, 5, sharex=ax1)
+        self.PlotEstimate('Jq', est=est,
+                          filter_len=filter_len, hax=ax5)
+        ax5.set_title('')
+
+        plt.tight_layout()
+        plt.show()
