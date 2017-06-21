@@ -119,6 +119,8 @@ class chipod:
     def AverageEstimates(self, var, ff):
         ''' Average like estimates in var. '''
 
+        import numpy as np
+
         if 'i' in ff:
             e1 = ff + '11'
             e2 = ff + '22'
@@ -132,12 +134,13 @@ class chipod:
             import numpy
             if type(var[e1]) == numpy.void:
                 self.χestimates.append(ff)
-                var[ff]['chi'] = (var[e1]['chi']
-                                  + var[e2]['chi'])/2
+                var[ff]['chi'] = np.nanmean(
+                    [var[e1]['chi'], var[e2]['chi']], axis=0)
                 var[ff]['N2'] = var[e1]['N2']
                 var[ff]['dTdz'] = var[e1]['dTdz']
             else:  # KT
-                var[ff] = (var[e1] + var[e2])/2
+                var[ff] = np.nanmean(
+                    [var[e1], var[e2]], axis=0)
 
     def CalcKT(self):
         self.LoadChiEstimates()
@@ -302,6 +305,9 @@ class chipod:
         import numpy as np
 
         self.LoadChiEstimates()
+
+        if est == 'best':
+            est = self.best
 
         if hax is None:
             hax = plt.gca()
