@@ -5,7 +5,7 @@ class chipod:
         particular chipod
     """
 
-    def __init__(self, basedir, unit, chifile='', best='', depth=0):
+    def __init__(self, basedir, unit, chifile='Turb.mat', best='', depth=0):
         self.basedir = basedir
         self.unit = unit
         self.name = unit + ' | ' + chifile
@@ -13,7 +13,10 @@ class chipod:
         # setup dirs for chipod_gust
         self.inputdir = basedir + unit + '/input/'
         self.procdir = basedir + unit + '/proc/'
-        self.chifile = basedir + unit + '/proc/combined/' + chifile
+        if chifile == 'Turb.mat':
+            self.chifile = basedir + unit + '/proc/' + chifile
+        else:
+            self.chifile = basedir + unit + '/proc/combined/' + chifile
 
         self.depth = depth
         self.χestimates = []
