@@ -326,7 +326,6 @@ class chipod:
         if varname == 'KT' or varname == 'Kt':
             # self.CalcKT()
             var = self.KT[est][:].squeeze()
-            var[var < 0] = np.nan
             titlestr = '$K_T$'
             yscale = 'log'
             grdflag = True
