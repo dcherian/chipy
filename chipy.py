@@ -326,7 +326,7 @@ class chipod:
 
         return time, var
 
-    def PlotEstimate(self, varname, est, hax=None, filter_len=None):
+    def PlotEstimate(self, varname, est, hax=None, filter_len=None, tind=None):
 
         import matplotlib.pyplot as plt
 
@@ -337,6 +337,9 @@ class chipod:
 
         if hax is None:
             hax = plt.gca()
+
+        if tind is None:
+            tind = range(len(self.time))
 
         try:
             time = self.chi[est]['time'].squeeze()
@@ -363,7 +366,7 @@ class chipod:
             grdflag = False
 
         time, var = self.FilterEstimate(varname=varname,
-                                        time=time, var=var,
+                                        time=time[tind], var=var[tind],
                                         filter_len=filter_len)
 
         # dtime = dcpy.util.datenum2datetime(time)
@@ -431,37 +434,49 @@ class chipod:
         # lims = [1e-10, 1e-4]
         # plt.xlim(lims); plt.ylim(lims)
 
-    def Summarize(self, est='best', filter_len=None):
+    def Summarize(self, est='best', filter_len=None, tind=None):
 
         import matplotlib.pyplot as plt
 
         if est == 'best':
             est = self.best
 
+        if tind is None:
+            tind = range(len(self.time))
+
         ax1 = plt.subplot(5, 1, 1)
-        ax1.plot_date(self.time, self.chi[est]['N2'],
+        ax1.plot_date(self.time[tind], self.chi[est]['N2'][tind],
                       '-', linewidth=0.5)
         ax1.set_ylabel('$N^2$')
 
-        ax2 = plt.subplot(5, 1, 2)
-        ax2.plot_date(self.time, self.chi[est]['dTdz'],
+        ax2 = plt.subplot(5, 1, 2, sharex=ax1)
+        ax2.plot_date(self.time[tind], self.chi[est]['dTdz'][tind],
                       '-', linewidth=0.5)
         ax2.set_ylabel('dT/dz')
 
-        ax3 = plt.subplot(5, 1, 3)
+        ax3 = plt.subplot(5, 1, 3, sharex=ax1)
         self.PlotEstimate('chi', est=est,
-                          filter_len=filter_len, hax=ax3)
+                          filter_len=filter_len, tind=tind,
+                          hax=ax3)
         ax3.set_title('')
 
         ax4 = plt.subplot(5, 1, 4, sharex=ax1)
         self.PlotEstimate('KT', est=est,
-                          filter_len=filter_len, hax=ax4)
+                          filter_len=filter_len, tind=tind,
+                          hax=ax4)
         ax4.set_title('')
 
         ax5 = plt.subplot(5, 1, 5, sharex=ax1)
         self.PlotEstimate('Jq', est=est,
-                          filter_len=filter_len, hax=ax5)
+                          filter_len=filter_len, tind=tind,
+                          hax=ax5)
         ax5.set_title('')
+
+        plt.setp(ax1.get_xticklabels(), visible=False)
+        plt.setp(ax2.get_xticklabels(), visible=False)
+        plt.setp(ax3.get_xticklabels(), visible=False)
+        plt.setp(ax4.get_xticklabels(), visible=False)
+        plt.gcf().autofmt_xdate()
 
         plt.tight_layout()
         plt.show()
@@ -521,11 +536,14 @@ class chipod:
         for sidx, ss in enumerate(seasons):
             _, varex = ReturnSeason(time, var, ss)
             style = {'color': cpodcolor[idx]}
+            meanstyle = {'color': cpodcolor[idx],
+                         'marker': '.'}
             pos.append(x0 + n*(sidx+1)+(idx-0.5)/3)
             hdl = ax.boxplot(np.log10(varex[~np.isnan(varex)]),
-                             sym='', positions=[pos[-1]],
-                             boxprops=style, meanprops=style,
-                             medianprops=style)
+                             positions=[pos[-1]],
+                             showmeans=True,
+                             boxprops=style, medianprops=style,
+                             meanprops=meanstyle)
             handles.append(hdl)
 
         pos = np.sort(np.array(pos))
