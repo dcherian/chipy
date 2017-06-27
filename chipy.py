@@ -299,10 +299,36 @@ class chipod:
         plt.grid()
         plt.tight_layout()
 
+    def FilterEstimate(self, varname, time, var, filter_len=None):
+        import numpy as np
+
+        if filter_len is not None:
+            dt = np.diff(time[0:2])*86400
+            filter_len = np.int(np.floor(filter_len/dt))
+            if np.mod(filter_len, 2) == 0:
+                filter_len = filter_len - 1
+
+            import bottleneck as bn
+            time = bn.move_mean(time, window=filter_len,
+                                min_count=3)
+            if varname == 'Jq':
+                var = bn.move_mean(var, window=filter_len,
+                                   min_count=3)
+            else:
+                var = bn.move_median(var, window=filter_len,
+                                     min_count=3)
+
+            # subsample
+            # L = filter_len
+            # Lb2 = np.floor(filter_len/2)
+            # time = time[Lb2+1::L]
+            # var = var[Lb2+1::L]
+
+        return time, var
+
     def PlotEstimate(self, varname, est, hax=None, filter_len=None):
 
         import matplotlib.pyplot as plt
-        import numpy as np
 
         self.LoadChiEstimates()
 
@@ -336,27 +362,9 @@ class chipod:
             yscale = 'linear'
             grdflag = False
 
-        if filter_len is not None:
-            dt = np.diff(time[0:2])*86400
-            filter_len = np.floor(filter_len/dt)
-            if np.mod(filter_len, 2) == 0:
-                filter_len = filter_len - 1
-
-            import bottleneck as bn
-            time = bn.move_mean(time, window=filter_len,
-                                min_count=3)
-            if varname == 'Jq':
-                var = bn.move_mean(var, window=filter_len,
-                                   min_count=3)
-            else:
-                var = bn.move_median(var, window=filter_len,
-                                     min_count=3)
-
-            # subsample
-            # L = filter_len
-            # Lb2 = np.floor(filter_len/2)
-            # time = time[Lb2+1::L]
-            # var = var[Lb2+1::L]
+        time, var = self.FilterEstimate(varname=varname,
+                                        time=time, var=var,
+                                        filter_len=filter_len)
 
         # dtime = dcpy.util.datenum2datetime(time)
         hax.plot_date(time, var, '-', label=est, linewidth=0.5)
@@ -458,7 +466,8 @@ class chipod:
         plt.tight_layout()
         plt.show()
 
-    def SeasonalSummary(self, ax=None, idx: int=0):
+    def SeasonalSummary(self, ax=None, idx: int=0,
+                        filter_len: int=86400):
 
         def ReturnSeason(time, var, season):
             ''' Given a season, return data only for the months in that season
@@ -499,10 +508,15 @@ class chipod:
             ax = plt.gca()
             ax.set_title(self.name)
 
+        varname = 'KT'
         var = self.KT[self.best]
         time = self.time
         label.append(str(self.depth) + ' m | '
                      + str(self.name[0:3]))
+
+        time, var = self.FilterEstimate(varname=varname,
+                                        time=time, var=var,
+                                        filter_len=filter_len)
 
         for sidx, ss in enumerate(seasons):
             _, varex = ReturnSeason(time, var, ss)
