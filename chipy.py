@@ -338,17 +338,29 @@ class chipod:
 
         if filter_len is not None:
             dt = np.diff(time[0:2])*86400
-            filter_len /= dt
+            filter_len = np.floor(filter_len/dt)
+            if np.mod(filter_len, 2) == 0:
+                filter_len = filter_len - 1
+
             import bottleneck as bn
+            time = bn.move_mean(time, window=filter_len,
+                                min_count=3)
             if varname == 'Jq':
                 var = bn.move_mean(var, window=filter_len,
-                                   min_count=filter_len/5)
+                                   min_count=3)
             else:
                 var = bn.move_median(var, window=filter_len,
-                                     min_count=filter_len/5)
+                                     min_count=3)
+
+            # subsample
+            # L = filter_len
+            # Lb2 = np.floor(filter_len/2)
+            # time = time[Lb2+1::L]
+            # var = var[Lb2+1::L]
 
         # dtime = dcpy.util.datenum2datetime(time)
-        hax.plot_date(time, var, '-', label=est)
+        hax.plot_date(time, var, '-', label=est, linewidth=0.5)
+        hax.set_ylabel(titlestr)
         hax.set(yscale=yscale)
         # hax.set_xlim([dtime[0], dtime[-1]])
         plt.grid(grdflag, axis='y', which='major')
@@ -386,6 +398,7 @@ class chipod:
                  alpha=0.5, normed=True, label=est1)
         plt.hist(lv2[np.isfinite(lv2)], bins=40,
                  alpha=0.5, normed=True, label=est2)
+        plt.xlabel(titlestr)
         hax.legend()
 
         try:
@@ -404,8 +417,8 @@ class chipod:
         plt.subplot(2, 2, 4)
         hax = plt.gca()
         hax.hexbin(np.log10(var1), np.log10(var2), cmap=plt.cm.YlOrRd)
-        hax.set_xlabel(titlestr + '_' + est1)
-        hax.set_ylabel(titlestr + '_' + est2)
+        hax.set_xlabel('$' + titlestr + '_{' + est1 + '}$')
+        hax.set_ylabel('$' + titlestr + '_{' + est2 + '}$')
         dcpy.plots.line45()
         # lims = [1e-10, 1e-4]
         # plt.xlim(lims); plt.ylim(lims)
@@ -418,11 +431,13 @@ class chipod:
             est = self.best
 
         ax1 = plt.subplot(5, 1, 1)
-        ax1.plot_date(self.time, self.chi[est]['N2'], '-', linewidth=0.5)
+        ax1.plot_date(self.time, self.chi[est]['N2'],
+                      '-', linewidth=0.5)
         ax1.set_ylabel('$N^2$')
 
         ax2 = plt.subplot(5, 1, 2)
-        ax2.plot_date(self.time, self.chi[est]['dTdz'], '-', linewidth=0.5)
+        ax2.plot_date(self.time, self.chi[est]['dTdz'],
+                      '-', linewidth=0.5)
         ax2.set_ylabel('dT/dz')
 
         ax3 = plt.subplot(5, 1, 3)
