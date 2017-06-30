@@ -566,3 +566,34 @@ class chipod:
                    label)
 
         return handles[0], label[0], pos
+
+    def ChooseVariable(self, varname, est: str='best'):
+
+        if est == 'best':
+            est = self.best
+
+        if varname == 'chi' or varname == 'χ':
+            var = self.chi[est]['chi'][:].squeeze()
+            titlestr = '$χ$'
+            yscale = 'log'
+            grdflag = True
+
+        if varname == 'KT' or varname == 'Kt':
+            var = self.KT[est][:].squeeze()
+            titlestr = '$K_T$'
+            yscale = 'log'
+            grdflag = True
+
+        if varname == 'Jq':
+            var = self.Jq[est]
+            titlestr = '$J_q$'
+            yscale = 'linear'
+            grdflag = False
+
+        if varname == 'T':
+            var = self.chi[est]['T'][:].squeeze()
+            titlestr = '$T$'
+            yscale = 'linear'
+            grdflag = False
+
+        return [var, titlestr, yscale, grdflag]
