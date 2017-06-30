@@ -299,7 +299,8 @@ class chipod:
         plt.grid()
         plt.tight_layout()
 
-    def FilterEstimate(self, varname, time, var, filter_len=None):
+    def FilterEstimate(self, kind, time, var,
+                       filter_len=None, decimate=False):
         import numpy as np
 
         if filter_len is not None:
@@ -311,18 +312,19 @@ class chipod:
             import bottleneck as bn
             time = bn.move_mean(time, window=filter_len,
                                 min_count=3)
-            if varname == 'Jq':
+            if kind == 'mean' or kind == 'Jq':
                 var = bn.move_mean(var, window=filter_len,
                                    min_count=3)
-            else:
+            elif kind == 'median':
                 var = bn.move_median(var, window=filter_len,
                                      min_count=3)
 
-            # subsample
-            # L = filter_len
-            # Lb2 = np.floor(filter_len/2)
-            # time = time[Lb2+1::L]
-            # var = var[Lb2+1::L]
+            if decimate is True:
+                # subsample
+                L = filter_len
+                Lb2 = np.floor(filter_len/2)
+                time = time[Lb2+1::L]
+                var = var[Lb2+1::L]
 
         return time, var
 
