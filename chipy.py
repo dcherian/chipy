@@ -397,6 +397,7 @@ class chipod:
         hax = plt.gca()
         self.PlotEstimate(varname, est1, hax, filter_len)
         self.PlotEstimate(varname, est2, hax, filter_len)
+        plt.gcf().autofmt_xdate()
         hax.set_title(titlestr + ' | ' + self.name)
 
         plt.subplot(2, 2, 3)
@@ -426,8 +427,8 @@ class chipod:
         plt.subplot(2, 2, 4)
         hax = plt.gca()
         hax.hexbin(np.log10(var1), np.log10(var2), cmap=plt.cm.YlOrRd)
-        hax.set_xlabel('$' + titlestr + '_{' + est1 + '}$')
-        hax.set_ylabel('$' + titlestr + '_{' + est2 + '}$')
+        hax.set_xlabel('${' + titlestr + '}^{' + est1 + '}$')
+        hax.set_ylabel('${' + titlestr + '}^{' + est2 + '}$')
         dcpy.plots.line45()
         # lims = [1e-10, 1e-4]
         # plt.xlim(lims); plt.ylim(lims)
@@ -435,6 +436,7 @@ class chipod:
     def Summarize(self, est='best', filter_len=None, tind=None):
 
         import matplotlib.pyplot as plt
+        import numpy as np
 
         if est == 'best':
             est = self.best
