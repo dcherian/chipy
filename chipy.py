@@ -376,19 +376,63 @@ class chipod:
 
         hax.set_title(titlestr + ' ' + est + self.name)
 
+    def PlotSpectrum(self, varname, est='best', nsmooth=5,
+                     filter_len=None, SubsetLength=None,
+                     ticks=None, ax=None, norm=False):
+
+        import numpy as np
+        from dcpy.ts import SpectralDensity
+        import matplotlib.pyplot as plt
+
+        var, titlestr, _, _ = self.ChooseVariable(varname, est)
+
+        t, χ = self.FilterEstimate('mean', self.time, var,
+                                   filter_len=filter_len,
+                                   decimate=True)
+        dt = np.nanmean(np.diff(t)*86400)
+
+        S, f, conf = SpectralDensity(χ, dt=dt,
+                                     nsmooth=nsmooth,
+                                     SubsetLength=SubsetLength/dt)
+
+        addstr = ''
+        if norm:
+            S /= np.trapz(S[~np.isnan(S)], f[~np.isnan(S)])
+            addstr = '/ $\int$ PSD'
+
+        from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
+        if ax is None:
+            fig = plt.figure()
+            ax = SubplotHost(fig, 1, 1, 1)
+            fig.add_subplot(ax)
+
+        ax.loglog(1/f, S, label=str(self.depth)+' m')
+        if not ax.xaxis_inverted():
+            ax.invert_xaxis()
+        ax.set_ylabel('PSD( ' + titlestr + ' )' + addstr)
+        ax.set_xlabel('Period (days)')
+
+        if ticks is not None:
+            ax.set_xticks((ticks*86400))
+            tickstr = [str(np.round(xx, 2)) for xx in ticks]
+            ax.set_xticklabels(tickstr)
+
+        ax.legend()
+
+        return ax
+
     def CompareEstimates(self, varname, est1, est2, filter_len=None):
         import numpy as np
         import matplotlib.pyplot as plt
         import dcpy.plots
 
         # time = self.chi[est1]['time'][0:-1:10]
-        if varname == 'chi':
+        if varname == 'chi' or varname == 'χ':
             var1 = self.chi[est1]['chi'][:].squeeze()
             var2 = self.chi[est2]['chi'][:].squeeze()
             titlestr = 'χ'
 
-        if varname == 'KT':
-            self.CalcKT()
+        if varname == 'KT' or varname == 'Kt':
             var1 = self.KT[est1]
             var2 = self.KT[est2]
             titlestr = 'K_T'
