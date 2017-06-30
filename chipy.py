@@ -23,6 +23,7 @@ class chipod:
         self.time = []
         self.best = best
         self.dt = []
+        self.Tchi = []
 
         # import os
         # this lets me import sally's processed output
@@ -41,6 +42,7 @@ class chipod:
 
         # read in χ and calculate derived quantities
         self.LoadChiEstimates()
+        self.LoadTzi()
         self.CalcKT()
         self.CalcJq()
 
@@ -59,12 +61,26 @@ class chipod:
 
     def LoadT1T2(self):
         ''' Loads data from internal χ-pod sensors '''
-        import scipy.io as spio
 
-        mat = spio.loadmat(self.procdir + '/temp.mat',
-                           struct_as_record=False, squeeze_me=True)
+        import hdf5storage as hs
+
+        mat = hs.loadmat(self.procdir + '/temp.mat',
+                         struct_as_record=False, squeeze_me=True)
+
         self.Tchi = mat['T']
-        self.Tchi.time = self.Tchi.time - 367
+        self.Tchi['time'] = self.Tchi['time'] - 367
+
+    def LoadTzi(self):
+        ''' Load internal stratification estimate '''
+        import hdf5storage as hs
+
+        mat = hs.loadmat(self.procdir + '../input/dTdz_i.mat',
+                         struct_as_record=False, squeeze_me=True)
+        try:
+            self.Tzi = mat['Tz_i']
+            self.Tzi['time'] -= 367
+        except:
+            pass
 
     def LoadChiEstimates(self):
         ''' Loads all calculated chi estimates using h5py '''
@@ -426,39 +442,88 @@ class chipod:
         if tind is None:
             tind = range(len(self.time))
 
-        ax1 = plt.subplot(5, 1, 1)
+        plt.figure(figsize=[6, 8.5])
+        ax1 = plt.subplot(7, 1, 1)
         ax1.plot_date(self.time[tind], self.chi[est]['N2'][tind],
                       '-', linewidth=0.5)
         ax1.set_ylabel('$N^2$')
 
-        ax2 = plt.subplot(5, 1, 2, sharex=ax1)
-        ax2.plot_date(self.time[tind], self.chi[est]['dTdz'][tind],
+        ax2 = plt.subplot(7, 1, 2, sharex=ax1)
+        ax2.plot_date(self.time[tind],
+                      self.chi[est]['dTdz'][tind],
                       '-', linewidth=0.5)
+
+        ind0 = np.where(self.Tzi['time'][0, 0]
+                        > self.time[tind][0])[0][0]
+        ind1 = np.where(self.Tzi['time'][0, 0]
+                        < self.time[tind][-2])[0][-1]
+        ax2.plot_date(self.Tzi['time'][0, 0][ind0:ind1],
+                      self.Tzi['Tz1'][0, 0][ind0:ind1], '-',
+                      linewidth=0.5)
+        plt.axhline(0, color='k', zorder=-1)
+        plt.axhline(5e-4, color='k', zorder=-1)
+        plt.axhline(-5e-4, color='k', zorder=-1)
         ax2.set_ylabel('dT/dz')
 
-        ax3 = plt.subplot(5, 1, 3, sharex=ax1)
-        self.PlotEstimate('chi', est=est,
-                          filter_len=filter_len, tind=tind,
-                          hax=ax3)
-        ax3.set_title('')
+        ax3 = plt.subplot(7, 1, 3, sharex=ax1)
+        if self.Tchi:
+            if filter_len is None:
+                # at minimum, average differentiator
+                # to same time resolution as χ estimate
+                fl = (self.time[2]-self.time[1])*86400
+            else:
+                fl = filter_len
 
-        ax4 = plt.subplot(5, 1, 4, sharex=ax1)
-        self.PlotEstimate('KT', est=est,
-                          filter_len=filter_len, tind=tind,
+            fl = None
+
+            time, var = self.FilterEstimate(varname='Jq',
+                                            time=self.Tchi['time'][0, 0],
+                                            var=self.Tchi['T1Pt'][0, 0],
+                                            filter_len=fl)
+            ind0 = np.where(time > self.time[tind][0])[0][0]
+            ind1 = np.where(time < self.time[tind][-2])[0][-1]
+
+            ax3.plot(time[ind0:ind1], var[ind0:ind1], '-', linewidth=0.5)
+
+            # time, var = self.FilterEstimate(varname='variance',
+            #                                 time=self.Tchi['time'][0, 0],
+            #                                 var=self.Tchi['T2Pt'][0, 0],
+            #                                 filter_len=fl)
+            # ax3.plot(time[ind0:ind1], var[ind0:ind1], '-', linewidth=0.5)
+            ax3.set_ylabel('var(T)')
+
+        ax4 = plt.subplot(7, 1, 4, sharex=ax1)
+        self.PlotEstimate('T', est=est,
+                          filter_len=None, tind=tind,
                           hax=ax4)
         ax4.set_title('')
 
-        ax5 = plt.subplot(5, 1, 5, sharex=ax1)
-        self.PlotEstimate('Jq', est=est,
+        ax5 = plt.subplot(7, 1, 5, sharex=ax1)
+        self.PlotEstimate('chi', est=est,
                           filter_len=filter_len, tind=tind,
                           hax=ax5)
         ax5.set_title('')
+
+        ax6 = plt.subplot(7, 1, 6, sharex=ax1)
+        self.PlotEstimate('KT', est=est,
+                          filter_len=filter_len, tind=tind,
+                          hax=ax6)
+        ax6.set_title('')
+
+        ax7 = plt.subplot(7, 1, 7, sharex=ax1)
+        self.PlotEstimate('Jq', est=est,
+                          filter_len=filter_len, tind=tind,
+                          hax=ax7)
+        ax7.set_title('')
 
         plt.setp(ax1.get_xticklabels(), visible=False)
         plt.setp(ax2.get_xticklabels(), visible=False)
         plt.setp(ax3.get_xticklabels(), visible=False)
         plt.setp(ax4.get_xticklabels(), visible=False)
+        plt.setp(ax5.get_xticklabels(), visible=False)
         plt.gcf().autofmt_xdate()
+        ax1.set_xlim([np.nanmin(self.time[tind]),
+                      np.nanmax(self.time[tind])])
 
         plt.tight_layout()
         plt.show()
