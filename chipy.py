@@ -328,14 +328,12 @@ class chipod:
 
         return time, var
 
-    def PlotEstimate(self, varname, est, hax=None, filter_len=None, tind=None):
+    def PlotEstimate(self, varname, est, hax=None,
+                     filter_len=None, tind=None):
 
         import matplotlib.pyplot as plt
 
         self.LoadChiEstimates()
-
-        if est == 'best':
-            est = self.best
 
         if hax is None:
             hax = plt.gca()
@@ -348,25 +346,7 @@ class chipod:
         except:
             time = self.time
 
-        if varname == 'chi' or varname == 'χ':
-            var = self.chi[est]['chi'][:].squeeze()
-            titlestr = '$χ$'
-            yscale = 'log'
-            grdflag = True
-
-        if varname == 'KT' or varname == 'Kt':
-            # self.CalcKT()
-            var = self.KT[est][:].squeeze()
-            titlestr = '$K_T$'
-            yscale = 'log'
-            grdflag = True
-
-        if varname == 'Jq':
-            var = self.Jq[est]
-            titlestr = '$J_q$'
-            yscale = 'linear'
-            grdflag = False
-
+        var, titlestr, yscale, grdflag = self.ChooseVariable(varname, est)
         time, var = self.FilterEstimate(varname=varname,
                                         time=time[tind], var=var[tind],
                                         filter_len=filter_len)
