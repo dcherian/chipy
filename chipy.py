@@ -393,9 +393,12 @@ class chipod:
                                    decimate=True)
         dt = np.nanmean(np.diff(t)*86400)
 
+        if SubsetLength is not None:
+            SubsetLength /= dt
+
         S, f, conf = SpectralDensity(χ, dt=dt,
                                      nsmooth=nsmooth,
-                                     SubsetLength=SubsetLength/dt)
+                                     SubsetLength=SubsetLength)
 
         addstr = ''
         if norm:
