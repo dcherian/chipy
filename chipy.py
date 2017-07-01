@@ -147,11 +147,13 @@ class chipod:
         if e1 in var and e2 in var:
             var[ff] = dict()
             var[ff]['time'] = self.time
-            import numpy
-            if type(var[e1]) == numpy.void:
+
+            if type(var[e1]) == np.void:
                 self.χestimates.append(ff)
                 var[ff]['chi'] = np.nanmean(
                     [var[e1]['chi'], var[e2]['chi']], axis=0)
+                var[ff]['T'] = np.nanmean(
+                    [var[e1]['T'], var[e2]['T']], axis=0)
                 var[ff]['N2'] = var[e1]['N2']
                 var[ff]['dTdz'] = var[e1]['dTdz']
             else:  # KT
