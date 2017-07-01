@@ -407,17 +407,28 @@ class chipod:
             fig.add_subplot(ax)
 
         ax.loglog(1/f, S, label=str(self.depth)+' m')
-        if not ax.xaxis_inverted():
-            ax.invert_xaxis()
         ax.set_ylabel('PSD( ' + titlestr + ' )' + addstr)
-        ax.set_xlabel('Period (days)')
+        ax.set_xlim([np.min(1/f), np.max(1/f)])
 
         if ticks is not None:
-            ax.set_xticks((ticks*86400))
-            tickstr = [str(np.round(xx, 2)) for xx in ticks]
-            ax.set_xticklabels(tickstr)
+            ax.set_xticks(ticks)
+        else:
+            ticks = ax.get_xticks()
 
+        if any(ticks > 86400):
+            norm = 86400
+            tstr = 'days'
+        else:
+            norm = 3600
+            tstr = 'hours'
+
+        tickstr = [str(np.round(xx/norm, 2)) for xx in ticks]
+        ax.set_xticklabels(tickstr)
+        ax.set_xlabel('Period (' + tstr + ')')
         ax.legend()
+
+        if not ax.xaxis_inverted():
+            ax.invert_xaxis()
 
         return ax
 
