@@ -332,10 +332,10 @@ class chipod:
                                 min_count=3)
             if kind == 'mean' or kind == 'Jq':
                 var = bn.move_mean(var, window=filter_len,
-                                   min_count=3)
-            elif kind == 'median':
+                                   min_count=1)
+            else:
                 var = bn.move_median(var, window=filter_len,
-                                     min_count=3)
+                                     min_count=1)
 
             if decimate is True:
                 # subsample
@@ -365,7 +365,7 @@ class chipod:
             time = self.time
 
         var, titlestr, yscale, grdflag = self.ChooseVariable(varname, est)
-        time, var = self.FilterEstimate(varname=varname,
+        time, var = self.FilterEstimate(kind=varname,
                                         time=time[tind], var=var[tind],
                                         filter_len=filter_len)
 
