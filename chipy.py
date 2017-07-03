@@ -402,7 +402,9 @@ class chipod:
 
         addstr = ''
         if norm:
-            S /= np.trapz(S, f)
+            normval = np.trapz(S, f)
+            S /= normval
+            conf /= normval
             addstr = '/ $\int$ PSD'
 
         from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
@@ -411,7 +413,11 @@ class chipod:
             ax = SubplotHost(fig, 1, 1, 1)
             fig.add_subplot(ax)
 
-        ax.loglog(1/f, S, label=str(self.depth)+' m')
+        hdl = ax.loglog(1/f, S, label=str(self.depth)+' m')
+        if len(conf) > 2:
+            ax.fill_between(1/f, conf[:, 0], conf[:, 1],
+                            color=hdl[0].get_color(), alpha=0.3)
+
         ax.set_ylabel('PSD( ' + titlestr + ' )' + addstr)
         ax.set_xlim([np.min(1/f), np.max(1/f)])
 
