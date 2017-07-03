@@ -356,13 +356,13 @@ class chipod:
         if hax is None:
             hax = plt.gca()
 
-        if tind is None:
-            tind = range(len(self.time))
-
         try:
             time = self.chi[est]['time'].squeeze()
         except:
             time = self.time
+
+        if tind is None:
+            tind = range(len(time))
 
         var, titlestr, yscale, grdflag = self.ChooseVariable(varname, est)
         time, var = self.FilterEstimate(kind=varname,
@@ -497,6 +497,8 @@ class chipod:
         hax.set_xlabel('${' + titlestr + '}^{' + est1 + '}$')
         hax.set_ylabel('${' + titlestr + '}^{' + est2 + '}$')
         dcpy.plots.line45()
+
+        plt.tight_layout()
         # lims = [1e-10, 1e-4]
         # plt.xlim(lims); plt.ylim(lims)
 
@@ -508,24 +510,26 @@ class chipod:
         if est == 'best':
             est = self.best
 
+        time = self.chi[est]['time']
+
         if tind is None:
-            tind = range(len(self.time))
+            tind = range(len(time))
 
         plt.figure(figsize=[6, 8.5])
         ax1 = plt.subplot(7, 1, 1)
-        ax1.plot_date(self.time[tind], self.chi[est]['N2'][tind],
+        ax1.plot_date(time[tind], self.chi[est]['N2'][tind],
                       '-', linewidth=0.5)
         ax1.set_ylabel('$N^2$')
 
         ax2 = plt.subplot(7, 1, 2, sharex=ax1)
-        ax2.plot_date(self.time[tind],
+        ax2.plot_date(time[tind],
                       self.chi[est]['dTdz'][tind],
                       '-', linewidth=0.5)
 
         ind0 = np.where(self.Tzi['time'][0, 0]
-                        > self.time[tind][0])[0][0]
+                        > time[tind][0])[0][0]
         ind1 = np.where(self.Tzi['time'][0, 0]
-                        < self.time[tind][-2])[0][-1]
+                        < time[tind][-2])[0][-1]
         ax2.plot_date(self.Tzi['time'][0, 0][ind0:ind1],
                       self.Tzi['Tz1'][0, 0][ind0:ind1], '-',
                       linewidth=0.5)
@@ -539,7 +543,7 @@ class chipod:
             if filter_len is None:
                 # at minimum, average differentiator
                 # to same time resolution as χ estimate
-                fl = (self.time[2]-self.time[1])*86400
+                fl = (time[2]-time[1])*86400
             else:
                 fl = filter_len
 
@@ -549,8 +553,8 @@ class chipod:
                                             time=self.Tchi['time'][0, 0],
                                             var=self.Tchi['T1Pt'][0, 0],
                                             filter_len=fl)
-            ind0 = np.where(time > self.time[tind][0])[0][0]
-            ind1 = np.where(time < self.time[tind][-2])[0][-1]
+            ind0 = np.where(time > time[tind][0])[0][0]
+            ind1 = np.where(time < time[tind][-2])[0][-1]
 
             ax3.plot(time[ind0:ind1], var[ind0:ind1], '-', linewidth=0.5)
 
@@ -591,8 +595,8 @@ class chipod:
         plt.setp(ax4.get_xticklabels(), visible=False)
         plt.setp(ax5.get_xticklabels(), visible=False)
         plt.gcf().autofmt_xdate()
-        ax1.set_xlim([np.nanmin(self.time[tind]),
-                      np.nanmax(self.time[tind])])
+        ax1.set_xlim([np.nanmin(time[tind]),
+                      np.nanmax(time[tind])])
 
         plt.tight_layout()
         plt.show()
