@@ -340,7 +340,7 @@ class chipod:
             if decimate is True:
                 # subsample
                 L = filter_len
-                Lb2 = np.floor(filter_len/2)
+                Lb2 = np.int(np.floor(filter_len/2))
                 time = time[Lb2+1::L]
                 var = var[Lb2+1::L]
 
@@ -402,7 +402,7 @@ class chipod:
 
         addstr = ''
         if norm:
-            S /= np.trapz(S[~np.isnan(S)], f[~np.isnan(S)])
+            S /= np.trapz(S, f)
             addstr = '/ $\int$ PSD'
 
         from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
@@ -431,6 +431,7 @@ class chipod:
         ax.set_xticklabels(tickstr)
         ax.set_xlabel('Period (' + tstr + ')')
         ax.legend()
+        ax.grid(True)
 
         if not ax.xaxis_inverted():
             ax.invert_xaxis()
@@ -638,7 +639,7 @@ class chipod:
         label.append(str(self.depth) + ' m | '
                      + str(self.name[0:3]))
 
-        time, var = self.FilterEstimate(varname=varname,
+        time, var = self.FilterEstimate(kind=varname,
                                         time=time, var=var,
                                         filter_len=filter_len)
 
