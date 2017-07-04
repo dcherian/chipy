@@ -384,7 +384,7 @@ class chipod:
 
     def PlotSpectrum(self, varname, est='best', nsmooth=5,
                      filter_len=None, SubsetLength=None,
-                     ticks=None, ax=None, norm=False):
+                     ticks=None, ax=None, norm=False, **kwargs):
 
         import numpy as np
         from dcpy.ts import SpectralDensity
@@ -402,7 +402,8 @@ class chipod:
 
         S, f, conf = SpectralDensity(χ, dt=dt,
                                      nsmooth=nsmooth,
-                                     SubsetLength=SubsetLength)
+                                     SubsetLength=SubsetLength,
+                                     **kwargs)
 
         addstr = ''
         if norm:
