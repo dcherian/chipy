@@ -369,6 +369,10 @@ class chipod:
                                         time=time[tind], var=var[tind],
                                         filter_len=filter_len)
 
+        if varname == 'Jq':
+            import numpy as np
+            var[np.isnan(var)] = 0
+
         # dtime = dcpy.util.datenum2datetime(time)
         hax.plot_date(time, var, '-', label=est, linewidth=0.5)
         hax.set_ylabel(titlestr)
