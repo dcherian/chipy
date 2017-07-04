@@ -329,7 +329,7 @@ class chipod:
 
             import bottleneck as bn
             time = bn.move_mean(time, window=filter_len,
-                                min_count=3)
+                                min_count=1)
             if kind == 'mean' or kind == 'Jq':
                 var = bn.move_mean(var, window=filter_len,
                                    min_count=1)
