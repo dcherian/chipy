@@ -8,7 +8,7 @@ class chipod:
     def __init__(self, basedir, unit, chifile='Turb.mat', best='', depth=0):
         self.basedir = basedir
         self.unit = unit
-        self.name = unit + ' | ' + chifile
+        self.name = 'χ-' + unit + ' | ' + str(depth) + ' m'
 
         # setup dirs for chipod_gust
         self.inputdir = basedir + unit + '/input/'
@@ -651,8 +651,7 @@ class chipod:
         varname = 'KT'
         var = self.KT[self.best]
         time = self.time
-        label.append(str(self.depth) + ' m | '
-                     + str(self.name[0:3]))
+        label.append(self.name)
 
         time, var = self.FilterEstimate(kind=varname,
                                         time=time, var=var,
@@ -684,9 +683,9 @@ class chipod:
         ax.spines['left'].set_bounds(limy[1], limy[-2])
         ax.spines['bottom'].set_bounds(limx[0], limx[-1])
 
-        plt.legend((handles[0]['medians'][0],
-                    handles[-1]['medians'][0]),
-                   label)
+        ax.legend((handles[0]['medians'][0],
+                   handles[-1]['medians'][0]),
+                  label)
 
         return handles[0], label[0], pos
 
