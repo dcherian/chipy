@@ -317,36 +317,45 @@ class chipod:
         plt.grid()
         plt.tight_layout()
 
-    def FilterEstimate(self, kind, time, var,
+    def FilterEstimate(self, kind, time, var, order=1,
                        filter_len=None, decimate=False):
         import numpy as np
 
+        dt = np.diff(time[0:2])*86400
         if filter_len is not None:
-            dt = np.diff(time[0:2])*86400
-            filter_len = np.int(np.floor(filter_len/dt))
-            if np.mod(filter_len, 2) == 0:
-                filter_len = filter_len - 1
-
-            import bottleneck as bn
-            time = bn.move_mean(time, window=filter_len,
-                                min_count=1)
-            if kind == 'mean' or kind == 'Jq':
-                var = bn.move_mean(var, window=filter_len,
-                                   min_count=1)
+            if kind == 'bandpass':
+                import dcpy.ts
+                from dcpy.util import MovingAverage
+                filter_len = np.array(filter_len)
+                # runnning average to remove gaps
+                var = MovingAverage(var, filter_len.min()/2/dt, decimate=False)
+                var = dcpy.ts.BandPassButter(var, 1/filter_len, dt,
+                                             order=order, num_discard=5)
             else:
-                var = bn.move_median(var, window=filter_len,
-                                     min_count=1)
+                filter_len = np.int(np.floor(filter_len/dt))
+                if np.mod(filter_len, 2) == 0:
+                    filter_len = filter_len - 1
 
-            if decimate is True:
-                # subsample
-                L = filter_len
-                Lb2 = np.int(np.floor(filter_len/2))
-                time = time[Lb2+1::L]
-                var = var[Lb2+1::L]
+                import bottleneck as bn
+                time = bn.move_mean(time, window=filter_len,
+                                    min_count=1)
+                if kind == 'mean' or kind == 'Jq':
+                    var = bn.move_mean(var, window=filter_len,
+                                       min_count=1)
+                else:
+                    var = bn.move_median(var, window=filter_len,
+                                         min_count=1)
+
+                if decimate is True:
+                    # subsample
+                    L = filter_len
+                    Lb2 = np.int(np.floor(filter_len/2))
+                    time = time[Lb2+1::L]
+                    var = var[Lb2+1::L]
 
         return time, var
 
-    def PlotEstimate(self, varname, est, hax=None,
+    def PlotEstimate(self, varname, est, hax=None, filt=None,
                      filter_len=None, tind=None):
 
         import matplotlib.pyplot as plt
@@ -364,20 +373,25 @@ class chipod:
         if tind is None:
             tind = range(len(time))
 
+        if filt is None:
+            filt = varname
+
         var, titlestr, yscale, grdflag = self.ChooseVariable(varname, est)
-        time, var = self.FilterEstimate(kind=varname,
+        if filt == 'bandpass':
+            yscale = 'linear'
+
+        time, var = self.FilterEstimate(kind=filt,
                                         time=time[tind], var=var[tind],
-                                        filter_len=filter_len)
+                                        filter_len=filter_len, decimate=False)
 
         if varname == 'Jq':
             import numpy as np
             var[np.isnan(var)] = 0
 
-        # dtime = dcpy.util.datenum2datetime(time)
-        hax.plot_date(time, var, '-', label=est, linewidth=0.5)
+        hax.plot(time, var, label=est, linewidth=1)
+        hax.xaxis_date()
         hax.set_ylabel(titlestr)
         hax.set(yscale=yscale)
-        # hax.set_xlim([dtime[0], dtime[-1]])
         plt.grid(grdflag, axis='y', which='major')
 
         hax.set_title(titlestr + ' ' + est + self.name)
