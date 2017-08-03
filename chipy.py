@@ -330,7 +330,7 @@ class chipod:
                 # runnning average to remove gaps
                 var = MovingAverage(var, filter_len.min()/2/dt, decimate=False)
                 var = dcpy.ts.BandPassButter(var, 1/filter_len, dt,
-                                             order=order, num_discard=5)
+                                             order=order)
             else:
                 filter_len = np.int(np.floor(filter_len/dt))
                 if np.mod(filter_len, 2) == 0:
@@ -356,7 +356,7 @@ class chipod:
         return time, var
 
     def PlotEstimate(self, varname, est, hax=None, filt=None,
-                     filter_len=None, tind=None):
+                     filter_len=None, tind=None, linewidth=1, **kwargs):
 
         import matplotlib.pyplot as plt
 
@@ -388,7 +388,7 @@ class chipod:
             import numpy as np
             var[np.isnan(var)] = 0
 
-        hax.plot(time, var, label=est, linewidth=1)
+        hax.plot(time, var, label=est, linewidth=linewidth, **kwargs)
         hax.xaxis_date()
         hax.set_ylabel(titlestr)
         hax.set(yscale=yscale)
