@@ -24,6 +24,7 @@ class chipod:
         self.best = best
         self.dt = []
         self.Tchi = []
+        self.Tzi = None
 
         # import os
         # this lets me import sally's processed output
@@ -74,14 +75,16 @@ class chipod:
     def LoadTzi(self):
         ''' Load internal stratification estimate '''
         import hdf5storage as hs
+        import os
 
-        mat = hs.loadmat(self.procdir + '../input/dTdz_i.mat',
-                         struct_as_record=False, squeeze_me=True)
-        try:
-            self.Tzi = mat['Tz_i']
-            self.Tzi['time'] -= 367
-        except:
-            pass
+        path = self.procdir + '../input/dTdz_i.mat'
+        if os.path.isfile(path):
+            mat = hs.loadmat(path, struct_as_record=False, squeeze_me=True)
+            try:
+                self.Tzi = mat['Tz_i']
+                self.Tzi['time'] -= 367
+            except:
+                pass
 
     def LoadChiEstimates(self):
         ''' Loads all calculated chi estimates using h5py '''
@@ -525,17 +528,19 @@ class chipod:
                       self.chi[est]['dTdz'][tind],
                       '-', linewidth=0.5)
 
-        ind0 = np.where(self.Tzi['time'][0, 0]
-                        > time[tind][0])[0][0]
-        ind1 = np.where(self.Tzi['time'][0, 0]
-                        < time[tind][-2])[0][-1]
-        ax2.plot_date(self.Tzi['time'][0, 0][ind0:ind1],
-                      self.Tzi['Tz1'][0, 0][ind0:ind1], '-',
-                      linewidth=0.5)
-        plt.axhline(0, color='k', zorder=-1)
-        plt.axhline(5e-4, color='k', zorder=-1)
-        plt.axhline(-5e-4, color='k', zorder=-1)
-        ax2.set_ylabel('dT/dz')
+        if self.Tzi is not None:
+            ind0 = np.where(self.Tzi['time'][0, 0]
+                            > time[tind][0])[0][0]
+            ind1 = np.where(self.Tzi['time'][0, 0]
+                            < time[tind][-2])[0][-1]
+            ax2.plot_date(self.Tzi['time'][0, 0][ind0:ind1],
+                          self.Tzi['Tz1'][0, 0][ind0:ind1], '-',
+                          linewidth=0.5)
+            plt.axhline(0, color='k', zorder=-1)
+            plt.axhline(5e-4, color='k', zorder=-1)
+            plt.axhline(-5e-4, color='k', zorder=-1)
+
+        ax2.set_ylabel('int. dT/dz')
 
         ax3 = plt.subplot(7, 1, 3, sharex=ax1)
         if self.Tchi:
