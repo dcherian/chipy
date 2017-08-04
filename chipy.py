@@ -43,6 +43,7 @@ class chipod:
         # read in χ and calculate derived quantities
         self.LoadChiEstimates()
         self.LoadTzi()
+        self.LoadCTD()
         self.CalcKT()
         self.CalcJq()
 
@@ -166,7 +167,7 @@ class chipod:
         for est in self.χestimates:
             if '1' in est or '2' in est:
                 # not a combined estimate
-                if 'Kt' in self.chi[est]:
+                if 'Kt' in self.chi[est].dtype.names:
                     self.KT[est] = self.chi[est]['Kt'][:]
                 else:
                     chi = self.chi[est]['chi'][:]
@@ -177,31 +178,10 @@ class chipod:
             self.AverageEstimates(self.KT, ff)
 
     def CalcJq(self):
-        import seawater as sw
-        import numpy as np
-
-        self.LoadCTD()
-
-        T = (self.ctd1.T + self.ctd2.T)/2
-        S = (self.ctd1.S + self.ctd2.S)/2
-        P = float(self.depth)
-
-        cp = np.interp(self.time,
-                       self.ctd1.time, sw.cp(S, T, P))
-        ρ = np.interp(self.time,
-                      self.ctd1.time, sw.dens(S, T, P))
-
         for est in self.χestimates:
             if '1' in est or '2' in est:
-                if 'Jq' in self.chi[est]:
-                    Jq = self.chi[est]['Jq'][:]
-                else:
-                    KT = self.KT[est].squeeze()
-                    dTdz = self.chi[est]['dTdz'].squeeze()
-                    Jq = -ρ * cp * KT * dTdz
-
-                Jq[abs(Jq) > 1000] = np.nan
-                self.Jq[est] = Jq
+                if 'Jq' in self.chi[est].dtype.names:
+                    self.Jq[est] = self.chi[est]['Jq'][:]
 
         for ff in ['mm', 'mi', 'pm', 'pi']:
             self.AverageEstimates(self.Jq, ff)
