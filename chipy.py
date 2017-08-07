@@ -451,16 +451,8 @@ class chipod:
         import matplotlib.pyplot as plt
         import dcpy.plots
 
-        # time = self.chi[est1]['time'][0:-1:10]
-        if varname == 'chi' or varname == 'χ':
-            var1 = self.chi[est1]['chi'][:].squeeze()
-            var2 = self.chi[est2]['chi'][:].squeeze()
-            titlestr = 'χ'
-
-        if varname == 'KT' or varname == 'Kt':
-            var1 = self.KT[est1]
-            var2 = self.KT[est2]
-            titlestr = 'K_T'
+        var1, titlestr, _, _ = self.ChooseVariable(varname, est1)
+        var2, _, _, _ = self.ChooseVariable(varname, est2)
 
         plt.subplot(2, 2, (1, 2))
         hax = plt.gca()
@@ -496,8 +488,8 @@ class chipod:
         plt.subplot(2, 2, 4)
         hax = plt.gca()
         hax.hexbin(np.log10(var1), np.log10(var2), cmap=plt.cm.YlOrRd)
-        hax.set_xlabel('${' + titlestr + '}^{' + est1 + '}$')
-        hax.set_ylabel('${' + titlestr + '}^{' + est2 + '}$')
+        hax.set_xlabel(titlestr + '$^{' + est1 + '}$')
+        hax.set_ylabel(titlestr + '$^{' + est2 + '}$')
         dcpy.plots.line45()
 
         plt.tight_layout()
@@ -692,6 +684,12 @@ class chipod:
 
         if est == 'best':
             est = self.best
+
+        if varname == 'eps' or varname == 'epsilon' or varname == 'ε':
+            var = self.chi[est]['eps'][:].squeeze()
+            titlestr = '$ε$'
+            yscale = 'log'
+            grdflag = True
 
         if varname == 'chi' or varname == 'χ':
             var = self.chi[est]['chi'][:].squeeze()
