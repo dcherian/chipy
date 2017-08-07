@@ -626,29 +626,9 @@ class chipod:
     def SeasonalSummary(self, ax=None, idx: int=0,
                         filter_len: int=86400):
 
-        def ReturnSeason(time, var, season):
-            ''' Given a season, return data only for the months in that season
-            season can be one of SW, NE, SW->NE or NE->SW
-            '''
-            from dcpy.util import datenum2datetime
-            mask = np.isnan(time)
-            time = time[~mask]
-            var = var[~mask]
-
-            dates = datenum2datetime(time)
-            months = [d.month for d in dates]
-
-            seasonMonths = {'SW':  [5, 6, 7, 8, 9],
-                            'SW→NE': [10, 11],
-                            'NE':  [12, 1, 2],
-                            'NE→SW': [3, 4]}
-
-            mask = np.asarray([m in seasonMonths[season] for m in months])
-
-            return time[mask], var[mask]
-
         import matplotlib.pyplot as plt
         import numpy as np
+        from dcpy.util import ExtractSeason
 
         seasons = ['NE', 'NE→SW', 'SW', 'SW→NE']
         cpodcolor = ['r', 'b']
@@ -675,7 +655,7 @@ class chipod:
                                         filter_len=filter_len)
 
         for sidx, ss in enumerate(seasons):
-            _, varex = ReturnSeason(time, var, ss)
+            _, varex = ExtractSeason(time, var, ss)
             style = {'color': cpodcolor[idx]}
             meanstyle = {'color': cpodcolor[idx],
                          'marker': '.'}
