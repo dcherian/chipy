@@ -82,7 +82,7 @@ class chipod:
             mat = hs.loadmat(path, struct_as_record=False, squeeze_me=True)
             try:
                 self.Tzi = mat['Tz_i']
-                self.Tzi['time'] -= 367
+                self.Tzi.time -= 367
             except:
                 pass
 
@@ -496,43 +496,63 @@ class chipod:
         # lims = [1e-10, 1e-4]
         # plt.xlim(lims); plt.ylim(lims)
 
-    def Summarize(self, est='best', filter_len=None, tind=None):
+    def Summarize(self, est='best', filter_len=None, tind=None,
+                  hfig=None, dt=0):
+        '''
+            Summarize χpod deployment.
+            Multipanel plots of N², T_z, Tp, T, χ, KT, Jq.
+            Can be used to overlay multiple χpods.
 
+            Input:
+                 est        : estimate name
+                 filter_len : in seconds
+                 tind       : subset in time
+                 hfig       : plot onto this figure handle
+                 dt         : time offset to compare multiple years
+                              (first subtracted and then added back
+                               so that data is not permanently tampered with)
+        '''
         import matplotlib.pyplot as plt
         import numpy as np
 
         if est == 'best':
             est = self.best
 
+        self.chi[est]['time'] -= dt
         time = self.chi[est]['time']
 
         if tind is None:
             tind = range(len(time))
 
-        plt.figure(figsize=[6, 8.5])
+        if hfig is None:
+            plt.figure(figsize=[6, 8.5])
+        else:
+            plt.figure(hfig.number)
+
         ax1 = plt.subplot(7, 1, 1)
-        ax1.plot_date(time[tind], self.chi[est]['N2'][tind],
-                      '-', linewidth=0.5)
+        t, N2 = self.FilterEstimate('mean', time=time[tind],
+                                    var=self.chi[est]['N2'][tind],
+                                    filter_len=filter_len)
+        ax1.plot_date(t, N2, '-', linewidth=1, label=self.name+' | '+est)
         ax1.set_ylabel('$N^2$')
+        plt.legend()
 
         ax2 = plt.subplot(7, 1, 2, sharex=ax1)
-        ax2.plot_date(time[tind],
-                      self.chi[est]['dTdz'][tind],
-                      '-', linewidth=0.5)
+        t, Tz = self.FilterEstimate('mean', time=time[tind],
+                                    var=self.chi[est]['dTdz'][tind],
+                                    filter_len=filter_len)
+        ax2.plot_date(t, Tz, '-', linewidth=1)
 
-        if self.Tzi is not None:
-            ind0 = np.where(self.Tzi['time'][0, 0]
-                            > time[tind][0])[0][0]
-            ind1 = np.where(self.Tzi['time'][0, 0]
-                            < time[tind][-2])[0][-1]
-            ax2.plot_date(self.Tzi['time'][0, 0][ind0:ind1],
-                          self.Tzi['Tz1'][0, 0][ind0:ind1], '-',
-                          linewidth=0.5)
-            plt.axhline(0, color='k', zorder=-1)
-            plt.axhline(5e-4, color='k', zorder=-1)
-            plt.axhline(-5e-4, color='k', zorder=-1)
-
-        ax2.set_ylabel('int. dT/dz')
+        # if self.Tzi is not None:
+        #     ind0 = np.where(self.Tzi.time
+        #                     > time[tind][0])[0][0]
+        #     ind1 = np.where(self.Tzi.time
+        #                     < time[tind][-2])[0][-1]
+        #     ax2.plot_date(self.Tzi.time[ind0:ind1],
+        #                   self.Tzi.Tz1[ind0:ind1], '-',
+        #                   linewidth=0.5)
+        ax2.axhline(0, color='k', zorder=-1)
+        ax2.set_ylabel('dT/dz')
 
         ax3 = plt.subplot(7, 1, 3, sharex=ax1)
         if self.Tchi:
@@ -545,7 +565,7 @@ class chipod:
 
             fl = None
 
-            time, var = self.FilterEstimate(varname='Jq',
+            time, var = self.FilterEstimate('mean',
                                             time=self.Tchi['time'][0, 0],
                                             var=self.Tchi['T1Pt'][0, 0],
                                             filter_len=fl)
@@ -559,7 +579,8 @@ class chipod:
             #                                 var=self.Tchi['T2Pt'][0, 0],
             #                                 filter_len=fl)
             # ax3.plot(time[ind0:ind1], var[ind0:ind1], '-', linewidth=0.5)
-            ax3.set_ylabel('var(T)')
+
+        ax3.set_ylabel('var(T)')
 
         ax4 = plt.subplot(7, 1, 4, sharex=ax1)
         self.PlotEstimate('T', est=est,
@@ -591,11 +612,16 @@ class chipod:
         plt.setp(ax4.get_xticklabels(), visible=False)
         plt.setp(ax5.get_xticklabels(), visible=False)
         plt.gcf().autofmt_xdate()
+        if dt != 0:
+            import matplotlib.dates as mdates
+            ax7.xaxis.set_major_locator(mdates.MonthLocator())
+            ax7.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
+
         ax1.set_xlim([np.nanmin(time[tind]),
                       np.nanmax(time[tind])])
 
-        plt.tight_layout()
-        plt.show()
+        plt.tight_layout(h_pad=-0.1)
+        self.chi[est]['time'] += dt
 
     def SeasonalSummary(self, ax=None, idx: int=0,
                         filter_len: int=86400):
