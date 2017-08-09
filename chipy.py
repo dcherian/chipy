@@ -348,7 +348,8 @@ class chipod:
         return time, var
 
     def PlotEstimate(self, varname, est, hax=None, filt=None,
-                     filter_len=None, tind=None, linewidth=1, **kwargs):
+                     filter_len=None, tind=None, linewidth=1,
+                     decimate=False, **kwargs):
 
         import matplotlib.pyplot as plt
 
@@ -374,7 +375,8 @@ class chipod:
 
         time, var = self.FilterEstimate(kind=filt,
                                         time=time[tind], var=var[tind],
-                                        filter_len=filter_len, decimate=False)
+                                        filter_len=filter_len,
+                                        decimate=decimate)
 
         if varname == 'Jq':
             import numpy as np
