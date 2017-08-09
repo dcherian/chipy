@@ -325,9 +325,18 @@ class chipod:
                 if kind == 'mean' or kind == 'Jq':
                     var = bn.move_mean(var, window=filter_len,
                                        min_count=1)
-                else:
+
+                if kind == 'median':
                     var = bn.move_median(var, window=filter_len,
                                          min_count=1)
+
+                if kind == 'var':
+                    var = bn.move_var(var, window=filter_len,
+                                      min_count=1)
+
+                if kind == 'std':
+                    var = bn.move_std(var, window=filter_len,
+                                      min_count=1)
 
                 if decimate is True:
                     # subsample
