@@ -508,7 +508,7 @@ class chipod:
         # plt.xlim(lims); plt.ylim(lims)
 
     def Summarize(self, est='best', filter_len=None, tind=None,
-                  hfig=None, dt=0):
+                  hfig=None, dt=0, debug=False):
         '''
             Summarize χpod deployment.
             Multipanel plots of N², T_z, Tp, T, χ, KT, Jq.
@@ -536,37 +536,53 @@ class chipod:
             tind = range(len(time))
 
         if hfig is None:
-            plt.figure(figsize=[6, 8.5])
+            plt.figure(figsize=[8.5, 6])
         else:
             plt.figure(hfig.number)
 
-        ax1 = plt.subplot(7, 1, 1)
-        t, N2 = self.FilterEstimate('mean', time=time[tind],
-                                    var=self.chi[est]['N2'][tind],
-                                    filter_len=filter_len)
-        ax1.plot_date(t, N2, '-', linewidth=1, label=self.name+' | '+est)
-        ax1.set_ylabel('$N^2$')
-        plt.legend()
+        if debug is False:
+            axN2 = plt.subplot(6, 1, 1)
+            ax0 = axN2  # first axis
+            axTz = plt.subplot(6, 1, 2, sharex=ax0)
+            axT = plt.subplot(6, 1, 3, sharex=ax0)
+            axχ = plt.subplot(6, 1, 4, sharex=ax0)
+            axKT = plt.subplot(6, 1, 5, sharex=ax0)
+            axJq = plt.subplot(6, 1, 6, sharex=ax0)
+            ax1 = axJq  # last axis
+        else:
+            axT = plt.subplot(5, 1, 1)
+            ax0 = axT  # first axis
+            axacc = plt.subplot(5, 1, 2, sharex=ax0)
+            axTP = plt.subplot(5, 1, 3, sharex=ax0)
+            axW = plt.subplot(5, 1, 4, sharex=ax0)
+            axχ = plt.subplot(5, 1, 5, sharex=ax0)
+            ax1 = axχ  # last axis
 
-        ax2 = plt.subplot(7, 1, 2, sharex=ax1)
-        t, Tz = self.FilterEstimate('mean', time=time[tind],
-                                    var=self.chi[est]['dTdz'][tind],
-                                    filter_len=filter_len)
-        ax2.plot_date(t, Tz, '-', linewidth=1)
+        if debug is False:
+            t, N2 = self.FilterEstimate('mean', time=time[tind],
+                                        var=self.chi[est]['N2'][tind],
+                                        filter_len=filter_len)
+            axN2.plot(t, N2, label=self.name+' | '+est, linewidth=0.5)
+            axN2.set_ylabel('$N^2$')
+            plt.legend()
 
-        # if self.Tzi is not None:
-        #     ind0 = np.where(self.Tzi.time
-        #                     > time[tind][0])[0][0]
-        #     ind1 = np.where(self.Tzi.time
-        #                     < time[tind][-2])[0][-1]
-        #     ax2.plot_date(self.Tzi.time[ind0:ind1],
-        #                   self.Tzi.Tz1[ind0:ind1], '-',
-        #                   linewidth=0.5)
-        ax2.axhline(0, color='k', zorder=-1)
-        ax2.set_ylabel('dT/dz')
+            t, Tz = self.FilterEstimate('mean', time=time[tind],
+                                        var=self.chi[est]['dTdz'][tind],
+                                        filter_len=filter_len)
+            axTz.plot_date(t, Tz, '-', linewidth=0.5)
+            axTz.axhline(0, color='k', zorder=-1)
+            axTz.set_ylabel('dT/dz')
 
-        ax3 = plt.subplot(7, 1, 3, sharex=ax1)
-        if self.Tchi:
+            # if self.Tzi is not None:
+            #     ind0 = np.where(self.Tzi.time
+            #                     > time[tind][0])[0][0]
+            #     ind1 = np.where(self.Tzi.time
+            #                     < time[tind][-2])[0][-1]
+            #     axTz.plot_date(self.Tzi.time[ind0:ind1],
+            #                   self.Tzi.Tz1[ind0:ind1], '-',
+            #                   linewidth=0.5)
+
+        if self.Tchi and debug is True:
             if filter_len is None:
                 # at minimum, average differentiator
                 # to same time resolution as χ estimate
@@ -575,61 +591,74 @@ class chipod:
                 fl = filter_len
 
             fl = None
+            # T1P
+            for tp in ['T1Pt', 'T2Pt']:
+                t, v = self.FilterEstimate(None,
+                                           time=self.Tchi['time'][0, 0],
+                                           var=self.Tchi[tp][0, 0],
+                                           filter_len=fl)
+                ind0 = np.where(t > time[tind][0])[0][0]
+                ind1 = np.where(t < time[tind][-2])[0][-1]
+                axTP.plot(t[ind0:ind1], v[ind0:ind1],
+                          linewidth=0.25)
 
-            time, var = self.FilterEstimate('mean',
-                                            time=self.Tchi['time'][0, 0],
-                                            var=self.Tchi['T1Pt'][0, 0],
-                                            filter_len=fl)
-            ind0 = np.where(time > time[tind][0])[0][0]
-            ind1 = np.where(time < time[tind][-2])[0][-1]
+            # W
+            t, v = self.FilterEstimate(None,
+                                       time=self.Tchi['time'][0, 0],
+                                       var=self.Tchi['W'][0, 0],
+                                       filter_len=fl)
+            axW.plot(t[ind0:ind1], v[ind0:ind1],
+                     linewidth=0.5)
 
-            ax3.plot(time[ind0:ind1], var[ind0:ind1], '-', linewidth=0.5)
+            # accel
+            for acc in ['AX', 'AY', 'AZ']:
+                t, v = self.FilterEstimate('mean',
+                                           time=self.Tchi['time'][0, 0],
+                                           var=self.Tchi[acc][0, 0],
+                                           filter_len=filter_len)
+                if acc == 'AZ':
+                    v = v + 9.81
+                axacc.plot(t[ind0:ind1], v[ind0:ind1],
+                           linewidth=0.5)
 
-            # time, var = self.FilterEstimate(varname='variance',
-            #                                 time=self.Tchi['time'][0, 0],
-            #                                 var=self.Tchi['T2Pt'][0, 0],
-            #                                 filter_len=fl)
-            # ax3.plot(time[ind0:ind1], var[ind0:ind1], '-', linewidth=0.5)
+            axTP.set_ylabel('var TP')
+            axW.set_ylabel('W')
+            axacc.set_ylabel('accel.')
+            axacc.set_ylim([-1, 1])
 
-        ax3.set_ylabel('var(T)')
-
-        ax4 = plt.subplot(7, 1, 4, sharex=ax1)
-        self.PlotEstimate('T', est=est,
+        self.PlotEstimate('T', est=est, decimate=True,
+                          linewidth=0.5,
                           filter_len=None, tind=tind,
-                          hax=ax4)
-        ax4.set_title('')
+                          hax=axT)
+        axT.set_title('')
 
-        ax5 = plt.subplot(7, 1, 5, sharex=ax1)
-        self.PlotEstimate('chi', est=est,
+        self.PlotEstimate('chi', est=est, decimate=False,
+                          filt = 'median', linewidth=0.5,
                           filter_len=filter_len, tind=tind,
-                          hax=ax5)
-        ax5.set_title('')
+                          hax=axχ)
+        axχ.set_title('')
 
-        ax6 = plt.subplot(7, 1, 6, sharex=ax1)
-        self.PlotEstimate('KT', est=est,
-                          filter_len=filter_len, tind=tind,
-                          hax=ax6)
-        ax6.set_title('')
+        if debug is False:
+            self.PlotEstimate('KT', est=est, decimate=False,
+                              filt='median', linewidth=0.5,
+                              filter_len=filter_len, tind=tind,
+                              hax=axKT)
+            axKT.set_title('')
 
-        ax7 = plt.subplot(7, 1, 7, sharex=ax1)
-        self.PlotEstimate('Jq', est=est,
-                          filter_len=filter_len, tind=tind,
-                          hax=ax7)
-        ax7.set_title('')
+            self.PlotEstimate('Jq', est=est, decimate=True,
+                              filt='mean', linewidth=0.5,
+                              filter_len=filter_len, tind=tind,
+                              hax=axJq)
+            axJq.set_title('')
 
-        plt.setp(ax1.get_xticklabels(), visible=False)
-        plt.setp(ax2.get_xticklabels(), visible=False)
-        plt.setp(ax3.get_xticklabels(), visible=False)
-        plt.setp(ax4.get_xticklabels(), visible=False)
-        plt.setp(ax5.get_xticklabels(), visible=False)
+        ax0.set_xlim([np.nanmin(time[tind]),
+                      np.nanmax(time[tind])])
+        ax0.xaxis_date()
         plt.gcf().autofmt_xdate()
         if dt != 0:
             import matplotlib.dates as mdates
-            ax7.xaxis.set_major_locator(mdates.MonthLocator())
-            ax7.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
-
-        ax1.set_xlim([np.nanmin(time[tind]),
-                      np.nanmax(time[tind])])
+            ax1.xaxis.set_major_locator(mdates.MonthLocator())
+            ax1.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
 
         plt.tight_layout(h_pad=-0.1)
         self.chi[est]['time'] += dt
