@@ -668,15 +668,17 @@ class chipod:
                         filter_len: int=86400):
 
         import matplotlib.pyplot as plt
+        import matplotlib as mpl
         import numpy as np
         from dcpy.util import ExtractSeason
 
         seasons = ['NE', 'NE→SW', 'SW', 'SW→NE']
-        cpodcolor = ['r', 'b']
+        # cpodcolor = ['indianred', 'slateblue', 'teal', 'darkgreen']
+        cpodcolor = mpl.cm.Dark2(np.arange(4))
         handles = []
 
         # positioning parameters
-        n = 1.2
+        n = 1.5
         x0 = 0
         pos = []
         label = []
@@ -691,9 +693,10 @@ class chipod:
         time = self.time
         label.append(self.name)
 
-        time, var = self.FilterEstimate(kind=varname,
+        time, var = self.FilterEstimate(kind='mean',
                                         time=time, var=var,
-                                        filter_len=filter_len)
+                                        filter_len=filter_len,
+                                        decimate=True)
 
         for sidx, ss in enumerate(seasons):
             _, varex = ExtractSeason(time, var, ss)
