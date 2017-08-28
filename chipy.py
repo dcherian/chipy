@@ -13,7 +13,7 @@ class chipod:
         # setup dirs for chipod_gust
         self.inputdir = basedir + unit + '/input/'
         self.procdir = basedir + unit + '/proc/'
-        if chifile == 'Turb.mat':
+        if 'Turb' in chifile:
             self.chifile = basedir + unit + '/proc/' + chifile
         else:
             self.chifile = basedir + unit + '/proc/combined/' + chifile
@@ -117,7 +117,8 @@ class chipod:
             except:
                 self.chi[name] = f['Turb'][0, 0][field]
 
-            for fld in ['Jq', 'Kt', 'chi', 'dTdz', 'time', 'N2', 'T', 'S']:
+            for fld in ['eps', 'Jq', 'Kt', 'chi', 'dTdz',
+                        'time', 'N2', 'T', 'S']:
                 try:
                     self.chi[name][fld] = self.chi[name][fld][0]
                 except:
@@ -342,8 +343,8 @@ class chipod:
                     # subsample
                     L = filter_len
                     Lb2 = np.int(np.floor(filter_len/2))
-                    time = time[Lb2+1::L]
-                    var = var[Lb2+1::L]
+                    time = time[Lb2+1::L-1]
+                    var = var[Lb2+1::L-1]
 
         return time, var
 
@@ -377,10 +378,6 @@ class chipod:
                                         time=time[tind], var=var[tind],
                                         filter_len=filter_len,
                                         decimate=decimate)
-
-        if varname == 'Jq':
-            import numpy as np
-            var[np.isnan(var)] = 0
 
         hax.plot(time, var, label=est, linewidth=linewidth, **kwargs)
         hax.xaxis_date()
