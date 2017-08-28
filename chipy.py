@@ -182,10 +182,22 @@ class chipod:
             self.AverageEstimates(self.KT, ff)
 
     def CalcJq(self):
+        import numpy as np
+
         for est in self.χestimates:
             if '1' in est or '2' in est:
                 if 'Jq' in self.chi[est].dtype.names:
                     self.Jq[est] = self.chi[est]['Jq'][:]
+                    mindTdz = self.chi['min_dTdz']
+                    mask = np.logical_and(np.abs(self.Jq[est]) > 1e3,
+                                          np.abs(self.chi[est]['dTdz'])
+                                          < 0.01)
+                    mask = np.logical_or(mask, np.abs(self.chi[est]['dTdz'])
+                                         < 0.003)
+                    self.Jq[est][mask] = np.nan
+                    self.chi[est]['chi'][mask] = np.nan
+                    self.chi[est]['eps'][mask] = np.nan
+                    self.KT[est][mask] = np.nan
 
         for ff in ['mm', 'mi', 'pm', 'pi']:
             self.AverageEstimates(self.Jq, ff)
