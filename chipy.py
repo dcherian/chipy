@@ -26,6 +26,9 @@ class chipod:
         self.Tchi = []
         self.Tzi = None
 
+        self.season = dict()
+        self.special = dict()
+
         # import os
         # this lets me import sally's processed output
         # if not os.path.isdir(self.chidir):
@@ -360,6 +363,32 @@ class chipod:
 
         return time, var
 
+    def ExtractSeason(self, t, var, name):
+
+        import matplotlib.dates as dt
+        from dcpy.util import find_approx
+        import numpy as np
+
+        t = t.copy()
+        v = var.copy()
+
+        # NaN out special times
+        for ss in self.special:
+            ts0, ts1 = self.special[ss]
+            is0 = find_approx(t, dt.date2num(ts0))
+            is1 = find_approx(t, dt.date2num(ts1))
+
+            t[is0:is1] = np.nan
+            v[is0:is1] = np.nan
+
+        # now search for season
+        if name in self.season:
+            t0, t1 = self.season[name]
+            it0 = find_approx(t, dt.date2num(t0))
+            it1 = find_approx(t, dt.date2num(t1))
+
+            return t[it0:it1], v[it0:it1]
+
     def PlotEstimate(self, varname, est, hax=None, filt=None,
                      filter_len=None, tind=None, linewidth=1,
                      decimate=False, **kwargs):
@@ -682,9 +711,8 @@ class chipod:
         import matplotlib.pyplot as plt
         import matplotlib as mpl
         import numpy as np
-        from dcpy.util import ExtractSeason
 
-        seasons = ['NE', 'NE→SW', 'SW', 'SW→NE']
+        # seasons = ['NE', 'NE→SW', 'SW', 'SW→NE']
         # cpodcolor = ['indianred', 'slateblue', 'teal', 'darkgreen']
         cpodcolor = mpl.cm.Dark2(np.arange(4))
         handles = []
@@ -710,12 +738,14 @@ class chipod:
                                         filter_len=filter_len,
                                         decimate=True)
 
-        for sidx, ss in enumerate(seasons):
-            _, varex = ExtractSeason(time, var, ss)
+        for sidx, ss in enumerate(self.season):
+            _, varex = self.ExtractSeason(time, var, ss)
+            pos.append(x0 + n*(sidx+1)+(idx-0.5)/3)
+            if len(varex) == 0:
+                continue
             style = {'color': cpodcolor[idx]}
             meanstyle = {'color': cpodcolor[idx],
                          'marker': '.'}
-            pos.append(x0 + n*(sidx+1)+(idx-0.5)/3)
             hdl = ax.boxplot(np.log10(varex[~np.isnan(varex)]),
                              positions=[pos[-1]],
                              showmeans=True,
@@ -726,9 +756,9 @@ class chipod:
         pos = np.sort(np.array(pos))
         ax.set_xticks(pos)
 
-        ax.set_xticklabels(seasons)
+        ax.set_xticklabels(self.season)
         ax.set_xlim([pos[0]-0.5-x0, pos[-1]+0.5])
-        ax.set_ylabel('$K_T$')
+        ax.set_ylabel('log$_{10} K_T$')
         ax.set_xlabel('season')
 
         limy = ax.get_yticks()
