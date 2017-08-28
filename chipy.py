@@ -474,9 +474,9 @@ class chipod:
         lv1 = np.log10(var1)
         lv2 = np.log10(var2)
         plt.hist(lv1[np.isfinite(lv1)], bins=40,
-                 alpha=0.5, normed=True, label=est1)
+                 normed=True, label=est1, histtype='step')
         plt.hist(lv2[np.isfinite(lv2)], bins=40,
-                 alpha=0.5, normed=True, label=est2)
+                 normed=True, label=est2, histtype='step')
         plt.xlabel(titlestr)
         hax.legend()
 
@@ -568,8 +568,9 @@ class chipod:
                                         filter_len=filter_len)
             axTz.plot_date(t, Tz, '-', linewidth=0.5)
             axTz.axhline(0, color='k', zorder=-1)
-            axTz.set_ylabel('dT/dz')
-
+            axTz.set_ylabel('dT/dz (symlog)')
+            axTz.set_yscale('symlog', linthreshy=1e-3, linscaley=0.5)
+            axTz.grid(True, axis='y', linewidth=0.5, linestyle='--')
             # if self.Tzi is not None:
             #     ind0 = np.where(self.Tzi.time
             #                     > time[tind][0])[0][0]
@@ -629,14 +630,14 @@ class chipod:
                           hax=axT)
         axT.set_title('')
 
-        self.PlotEstimate('chi', est=est, decimate=False,
+        self.PlotEstimate('chi', est=est, decimate=True,
                           filt = 'median', linewidth=0.5,
                           filter_len=filter_len, tind=tind,
                           hax=axχ)
         axχ.set_title('')
 
         if debug is False:
-            self.PlotEstimate('KT', est=est, decimate=False,
+            self.PlotEstimate('KT', est=est, decimate=True,
                               filt='median', linewidth=0.5,
                               filter_len=filter_len, tind=tind,
                               hax=axKT)
@@ -647,6 +648,9 @@ class chipod:
                               filter_len=filter_len, tind=tind,
                               hax=axJq)
             axJq.set_title('')
+            # axJq.set_yscale('symlog', linthreshy=50, linscaley=2)
+            axJq.grid(True, axis='y', linewidth=0.5, linestyle='--')
+
 
         ax0.set_xlim([np.nanmin(time[tind]),
                       np.nanmax(time[tind])])
