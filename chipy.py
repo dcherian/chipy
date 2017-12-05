@@ -136,6 +136,14 @@ class chipod:
         self.time = self.chi[self.χestimates[0]]['time']
         self.dt = (self.time[1] - self.time[0])*86400  # in seconds
 
+        # import xarray as xr
+        # import pandas as pd
+        # self = c526
+        # mm1 = xr.Dataset({'χ': ('time', self.chi[name]['chi']),
+        #                   'Jq': ('time', self.chi[name]['Jq']),
+        #                   coords={'time': ('time', self.chi[name]['time'])}
+        #                   })
+
         # average together similar estimates
         for ff in ['mm', 'pm', 'mi', 'pi']:
             self.AverageEstimates(self.chi, ff)
@@ -169,6 +177,7 @@ class chipod:
                     [var[e1], var[e2]], axis=0)
 
     def CalcKT(self):
+        import numpy as np
         self.LoadChiEstimates()
 
         for est in self.χestimates:
@@ -184,6 +193,9 @@ class chipod:
         for ff in ['mm', 'mi', 'pm', 'pi']:
             self.AverageEstimates(self.KT, ff)
 
+        # for est in self.KT:
+        #     self.KT[est][np.isnan(self.KT[est])] = 1.5e-7
+
     def CalcJq(self):
         import numpy as np
 
@@ -191,19 +203,22 @@ class chipod:
             if '1' in est or '2' in est:
                 if 'Jq' in self.chi[est].dtype.names:
                     self.Jq[est] = self.chi[est]['Jq'][:]
-                    mindTdz = self.chi['min_dTdz']
-                    mask = np.logical_and(np.abs(self.Jq[est]) > 1e3,
-                                          np.abs(self.chi[est]['dTdz'])
-                                          < 0.01)
-                    mask = np.logical_or(mask, np.abs(self.chi[est]['dTdz'])
-                                         < 0.003)
-                    self.Jq[est][mask] = np.nan
-                    self.chi[est]['chi'][mask] = np.nan
-                    self.chi[est]['eps'][mask] = np.nan
-                    self.KT[est][mask] = np.nan
+                    # mindTdz = self.chi['min_dTdz']
+                    # mask = np.logical_and(np.abs(self.Jq[est]) > 1e3,
+                    #                       np.abs(self.chi[est]['dTdz'])
+                    #                       < 0.02)
+                    # mask = np.logical_or(mask, np.abs(self.chi[est]['dTdz'])
+                    #                      < 0.002)
+                    # self.Jq[est][mask] = np.nan
+                    # self.chi[est]['chi'][mask] = np.nan
+                    # self.chi[est]['eps'][mask] = np.nan
+                    # self.KT[est][mask] = np.nan
 
         for ff in ['mm', 'mi', 'pm', 'pi']:
             self.AverageEstimates(self.Jq, ff)
+
+        for est in self.Jq:
+            self.Jq[est][np.isnan(self.Jq[est])] = 0
 
     def LoadSallyChiEstimate(self, fname, estname):
         ''' fname - the mat file you want to read from.
@@ -397,6 +412,7 @@ class chipod:
                      decimate=False, **kwargs):
 
         import matplotlib.pyplot as plt
+        import dcpy.plots
 
         self.LoadChiEstimates()
 
@@ -427,6 +443,7 @@ class chipod:
         hax.xaxis_date()
         hax.set_ylabel(titlestr)
         hax.set(yscale=yscale)
+        hax.set_ylim(dcpy.plots.robust_lim(var))
         plt.grid(grdflag, axis='y', which='major')
 
         hax.set_title(titlestr + ' ' + est + self.name)
@@ -694,7 +711,6 @@ class chipod:
             axJq.set_title('')
             # axJq.set_yscale('symlog', linthreshy=50, linscaley=2)
             axJq.grid(True, axis='y', linewidth=0.5, linestyle='--')
-
 
         ax0.set_xlim([np.nanmin(time[tind]),
                       np.nanmax(time[tind])])
