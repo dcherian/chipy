@@ -345,7 +345,7 @@ class chipod:
                 var = MovingAverage(var, filter_len.min()/2/dt, decimate=False)
                 var = dcpy.ts.BandPassButter(var, 1/filter_len, dt,
                                              order=order)
-            else:
+            elif kind in ['mean', 'median', 'var', 'std', 'Jq']:
                 filter_len = np.int(np.floor(filter_len/dt))
                 if np.mod(filter_len, 2) == 0:
                     filter_len = filter_len - 1
@@ -375,6 +375,11 @@ class chipod:
                     Lb2 = np.int(np.floor(filter_len/2))
                     time = time[Lb2+1::L-1]
                     var = var[Lb2+1::L-1]
+
+            elif kind == 'hann' or kind is None:
+                import dcpy.util
+                filter_len = np.int(np.floor(filter_len/dt))
+                var = dcpy.util.smooth(var, filter_len, preserve_nan=True)
 
         return time, var
 
