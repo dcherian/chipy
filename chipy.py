@@ -61,8 +61,8 @@ class chipod:
                              struct_as_record=False, squeeze_me=True)
             self.ctd1 = mat['T1']
             self.ctd2 = mat['T2']
-            self.ctd1.time = self.ctd1.time - 367
-            self.ctd2.time = self.ctd2.time - 367
+            self.ctd1.time = self.ctd1.time - 366
+            self.ctd2.time = self.ctd2.time - 366
 
     def LoadT1T2(self):
         ''' Loads data from internal χ-pod sensors '''
@@ -73,7 +73,7 @@ class chipod:
                          struct_as_record=False, squeeze_me=True)
 
         self.Tchi = mat['T']
-        self.Tchi['time'] = self.Tchi['time'] - 367
+        self.Tchi['time'] = self.Tchi['time'] - 366
 
     def LoadTzi(self):
         ''' Load internal stratification estimate '''
@@ -85,7 +85,7 @@ class chipod:
             mat = hs.loadmat(path, struct_as_record=False, squeeze_me=True)
             try:
                 self.Tzi = mat['Tz_i']
-                self.Tzi.time -= 367
+                self.Tzi.time -= 366
             except:
                 pass
 
@@ -129,7 +129,7 @@ class chipod:
 
             # convert to matplotline datetime
             try:
-                self.chi[name]['time'] = self.chi[name]['time']-367
+                self.chi[name]['time'] = self.chi[name]['time']-366
             except:
                 pass
 
@@ -232,9 +232,9 @@ class chipod:
         self.chi[estname + '2']['chi'] = self.chi[estname + '2']['chi2']
 
         self.chi[estname + '1']['time'] = \
-                        self.chi[estname + '1']['time'] - 367
+                        self.chi[estname + '1']['time'] - 366
         self.chi[estname + '2']['time'] = \
-                        self.chi[estname + '2']['time'] - 367
+                        self.chi[estname + '2']['time'] - 366
         self.χestimates.append(estname+'1')
         self.χestimates.append(estname+'2')
 
