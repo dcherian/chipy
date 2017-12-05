@@ -27,7 +27,7 @@ class chipod:
         self.Tzi = None
 
         self.season = dict()
-        self.special = dict()
+        self.events = dict()
 
         # import os
         # this lets me import sally's processed output
@@ -372,9 +372,12 @@ class chipod:
         t = t.copy()
         v = var.copy()
 
-        # NaN out special times
-        for ss in self.special:
-            ts0, ts1 = self.special[ss]
+        # NaN out events
+        for ss in self.events:
+            if 'FW' in ss:
+                continue
+
+            ts0, ts1 = self.events[ss]
             is0 = find_approx(t, dt.date2num(ts0))
             is1 = find_approx(t, dt.date2num(ts1))
 
