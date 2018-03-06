@@ -1,3 +1,10 @@
+import numpy as np
+import hdf5storage as hs
+import xarray as xr
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+
+
 class chipod:
     """ Base class for chipod instruments.
         Depends heavily on output from chipod_gust routines.
@@ -68,8 +75,6 @@ class chipod:
     def LoadT1T2(self):
         ''' Loads data from internal χ-pod sensors '''
 
-        import hdf5storage as hs
-
         mat = hs.loadmat(self.procdir + '/temp.mat',
                          struct_as_record=False, squeeze_me=True)
 
@@ -78,7 +83,6 @@ class chipod:
 
     def LoadTzi(self):
         ''' Load internal stratification estimate '''
-        import hdf5storage as hs
         import os
 
         path = self.procdir + '../input/dTdz_i.mat'
@@ -295,7 +299,6 @@ class chipod:
             pass
 
     def PlotPitotRawVoltage(self, hax=None):
-        import matplotlib.pyplot as plt
         import dcpy.util
 
         if hax is None:
@@ -356,7 +359,7 @@ class chipod:
 
     def FilterEstimate(self, kind, time, var, order=1,
                        filter_len=None, decimate=False):
-        import numpy as np
+
 
         dt = np.diff(time[0:2])*86400
         if filter_len is not None:
@@ -410,7 +413,6 @@ class chipod:
 
         import matplotlib.dates as dt
         from dcpy.util import find_approx
-        import numpy as np
 
         t = t.copy()
         v = var.copy()
@@ -439,7 +441,6 @@ class chipod:
                      filter_len=None, tind=None, linewidth=1,
                      decimate=False, **kwargs):
 
-        import matplotlib.pyplot as plt
         import dcpy.plots
 
         self.LoadChiEstimates()
@@ -480,9 +481,7 @@ class chipod:
                      filter_len=None, SubsetLength=None,
                      ticks=None, ax=None, norm=False, **kwargs):
 
-        import numpy as np
         from dcpy.ts import SpectralDensity
-        import matplotlib.pyplot as plt
 
         var, titlestr, _, _ = self.ChooseVariable(varname, est)
 
@@ -544,8 +543,7 @@ class chipod:
         return ax
 
     def CompareEstimates(self, varname, est1, est2, filter_len=None):
-        import numpy as np
-        import matplotlib.pyplot as plt
+
         import dcpy.plots
 
         var1, titlestr, _, _ = self.ChooseVariable(varname, est1)
@@ -609,8 +607,6 @@ class chipod:
                               (first subtracted and then added back
                                so that data is not permanently tampered with)
         '''
-        import matplotlib.pyplot as plt
-        import numpy as np
 
         if est == 'best':
             est = self.best
@@ -754,10 +750,6 @@ class chipod:
 
     def SeasonalSummary(self, ax=None, idx: int=0,
                         filter_len: int=86400):
-
-        import matplotlib.pyplot as plt
-        import matplotlib as mpl
-        import numpy as np
 
         # seasons = ['NE', 'NE→SW', 'SW', 'SW→NE']
         # cpodcolor = ['indianred', 'slateblue', 'teal', 'darkgreen']
