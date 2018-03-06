@@ -24,6 +24,7 @@ class chipod:
         self.best = best
         self.dt = []
         self.Tchi = []
+        self.pitot = None
         self.Tzi = None
 
         self.season = dict()
@@ -255,10 +256,8 @@ class chipod:
         self.χestimates.append(estname+'1')
         self.χestimates.append(estname+'2')
 
-    def LoadPitot(self):
+    def LoadPitotOld(self):
         ''' Load pitot data from proc/Praw.mat into self.pitot '''
-        import numpy as np
-        import hdf5storage as hs
 
         rawname = self.procdir + '/Praw.mat'
         pitot = hs.loadmat(rawname,
@@ -272,6 +271,28 @@ class chipod:
         pitot['time'] = pitot['time'][0, 0]
         self.pitotrange = range(0, len(pitot['time'][0, 0]))
         self.pitot = pitot
+
+    def load_pitot(self):
+        rawname = self.inputdir + 'vel_p.mat'
+
+        pitot = hs.loadmat(rawname, squeeze_me=True, struct_as_record=False)
+        time = ((-86400 + pitot['vel_p'].time * 86400).astype('timedelta64[s]')
+                + np.datetime64('0000-01-01').astype('datetime64[ns]'))
+        spd = xr.DataArray(pitot['vel_p'].spd, name='spd',
+                           dims=['time'], coords=[time])
+        u = xr.DataArray(pitot['vel_p'].u, name='u',
+                         dims=['time'], coords=[time])
+        v = xr.DataArray(pitot['vel_p'].v, name='v',
+                         dims=['time'], coords=[time])
+
+        self.pitot = xr.merge([spd, u, v])
+
+        try:
+            shear = xr.DataArray(pitot['vel_p'].shear, name='shear',
+                                 dims=['time'], coords=[time])
+            self.pitot = xr.merge([shear, self.pitot])
+        except AttributeError:
+            pass
 
     def PlotPitotRawVoltage(self, hax=None):
         import matplotlib.pyplot as plt
