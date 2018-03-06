@@ -108,17 +108,11 @@ class chipod:
             from scipy.io import loadmat
             f = loadmat(self.chifile)
 
-        for field in f['Turb'].dtype.names:
-            if field[0:4] == 'chi_':
-                name = field[4:]
-                self.χestimates.append(name)
-            else:
-                name = field
-
+        def process_field(obj, struct, name):
             try:
-                self.chi[name] = f['Turb'][0, 0][field][0, 0]
+                self.chi[name] = struct[0, 0]
             except:
-                self.chi[name] = f['Turb'][0, 0][field]
+                self.chi[name] = struct
 
             for fld in ['eps', 'Jq', 'Kt', 'chi', 'dTdz',
                         'time', 'N2', 'T', 'S']:
@@ -128,10 +122,20 @@ class chipod:
                     pass
 
             # convert to matplotline datetime
-            try:
+            if 'time' in self.chi[name].dtype.names:
                 self.chi[name]['time'] = self.chi[name]['time']-366
-            except:
-                pass
+
+        for field in f['Turb'].dtype.names:
+            if field in ['mm1', 'mm2', 'pm1', 'pm2',
+                         'mi11', 'mi22', 'pi11', 'pi22']:
+                name = field
+                self.χestimates.append(name)
+                process_field(self, f['Turb'][0, 0][field], name)
+
+                if 'wda' in f['Turb'][0, 0][field].dtype.names:
+                    process_field(self, f['Turb'][0, 0][field][0, 0]['wda'],
+                                  name + 'w')
+                    self.χestimates.append(name+'w')
 
         self.time = self.chi[self.χestimates[0]]['time']
         self.dt = (self.time[1] - self.time[0])*86400  # in seconds
@@ -147,18 +151,17 @@ class chipod:
         # average together similar estimates
         for ff in ['mm', 'pm', 'mi', 'pi']:
             self.AverageEstimates(self.chi, ff)
+            self.AverageEstimates(self.chi, ff, suffix='w')
 
-    def AverageEstimates(self, var, ff):
+    def AverageEstimates(self, var, ff, suffix=''):
         ''' Average like estimates in var. '''
 
-        import numpy as np
-
         if 'i' in ff:
-            e1 = ff + '11'
-            e2 = ff + '22'
+            e1 = ff + '11' + suffix
+            e2 = ff + '22' + suffix
         else:
-            e1 = ff + '1'
-            e2 = ff + '2'
+            e1 = ff + '1' + suffix
+            e2 = ff + '2' + suffix
 
         if e1 in var and e2 in var:
             var[ff] = dict()
@@ -168,16 +171,17 @@ class chipod:
                 self.χestimates.append(ff)
                 var[ff]['chi'] = np.nanmean(
                     [var[e1]['chi'], var[e2]['chi']], axis=0)
-                var[ff]['T'] = np.nanmean(
-                    [var[e1]['T'], var[e2]['T']], axis=0)
-                var[ff]['N2'] = var[e1]['N2']
                 var[ff]['dTdz'] = var[e1]['dTdz']
+
+                if suffix == '':
+                    var[ff]['T'] = np.nanmean(
+                        [var[e1]['T'], var[e2]['T']], axis=0)
+                    var[ff]['N2'] = var[e1]['N2']
             else:  # KT
                 var[ff] = np.nanmean(
                     [var[e1], var[e2]], axis=0)
 
     def CalcKT(self):
-        import numpy as np
         self.LoadChiEstimates()
 
         for est in self.χestimates:
@@ -186,9 +190,10 @@ class chipod:
                 if 'Kt' in self.chi[est].dtype.names:
                     self.KT[est] = self.chi[est]['Kt'][:]
                 else:
-                    chi = self.chi[est]['chi'][:]
-                    dTdz = self.chi[est]['dTdz'][:]
-                    self.KT[est] = (0.5*chi)/dTdz**2
+                    raise ValueError(est + '.Kt not in ' + self.name + '.chi')
+                    # chi = self.chi[est]['chi'][:]
+                    # dTdz = self.chi[est]['dTdz'][:]
+                    # self.KT[est] = (0.5*chi)/dTdz**2
 
         for ff in ['mm', 'mi', 'pm', 'pi']:
             self.AverageEstimates(self.KT, ff)
@@ -197,8 +202,6 @@ class chipod:
         #     self.KT[est][np.isnan(self.KT[est])] = 1.5e-7
 
     def CalcJq(self):
-        import numpy as np
-
         for est in self.χestimates:
             if '1' in est or '2' in est:
                 if 'Jq' in self.chi[est].dtype.names:
@@ -213,12 +216,11 @@ class chipod:
                     # self.chi[est]['chi'][mask] = np.nan
                     # self.chi[est]['eps'][mask] = np.nan
                     # self.KT[est][mask] = np.nan
+                else:
+                    raise ValueError(est + '.Jq not in ' + self.name + '.chi')
 
         for ff in ['mm', 'mi', 'pm', 'pi']:
             self.AverageEstimates(self.Jq, ff)
-
-        for est in self.Jq:
-            self.Jq[est][np.isnan(self.Jq[est])] = 0
 
     def LoadSallyChiEstimate(self, fname, estname):
         ''' fname - the mat file you want to read from.
