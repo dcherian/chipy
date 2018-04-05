@@ -97,13 +97,8 @@ class chipod:
     def LoadChiEstimates(self):
         ''' Loads all calculated chi estimates using h5py '''
 
-        # import os
-        # import glob
-
         if not self.chi == dict([]):
             return
-
-        # files = glob.glob(self.chidir + '/*.mat')
 
         try:
             import h5py
@@ -120,7 +115,7 @@ class chipod:
                 self.chi[name] = struct
 
             for fld in ['eps', 'Jq', 'Kt', 'chi', 'dTdz',
-                        'time', 'N2', 'T', 'S']:
+                        'time', 'N2', 'T', 'S', 'eps_Kt']:
                 try:
                     self.chi[name][fld] = self.chi[name][fld][0]
                 except:
@@ -168,20 +163,29 @@ class chipod:
             e1 = ff + '1' + suffix
             e2 = ff + '2' + suffix
 
+        ff = ff + suffix
+
         if e1 in var and e2 in var:
             var[ff] = dict()
-            var[ff]['time'] = self.time
+            var[ff]['time'] = self.chi[e1]['time']
 
             if type(var[e1]) == np.void:
                 self.χestimates.append(ff)
                 var[ff]['chi'] = np.nanmean(
                     [var[e1]['chi'], var[e2]['chi']], axis=0)
+                var[ff]['eps'] = np.nanmean(
+                    [var[e1]['eps'], var[e2]['eps']], axis=0)
+
+                if (suffix == 'w' and 'eps_Kt' in var[e1].dtype.names
+                    and 'eps_Kt' in var[e2].dtype.names):
+                    var[ff]['eps_Kt'] = np.nanmean(
+                        [var[e1]['eps_Kt'], var[e2]['eps_Kt']], axis=0)
+
                 var[ff]['dTdz'] = var[e1]['dTdz']
 
-                if suffix == '':
-                    var[ff]['T'] = np.nanmean(
-                        [var[e1]['T'], var[e2]['T']], axis=0)
-                    var[ff]['N2'] = var[e1]['N2']
+                var[ff]['T'] = np.nanmean(
+                    [var[e1]['T'], var[e2]['T']], axis=0)
+                var[ff]['N2'] = var[e1]['N2']
             else:  # KT
                 var[ff] = np.nanmean(
                     [var[e1], var[e2]], axis=0)
@@ -202,6 +206,7 @@ class chipod:
 
         for ff in ['mm', 'mi', 'pm', 'pi']:
             self.AverageEstimates(self.KT, ff)
+            self.AverageEstimates(self.KT, ff, suffix='w')
 
         # for est in self.KT:
         #     self.KT[est][np.isnan(self.KT[est])] = 1.5e-7
@@ -226,6 +231,7 @@ class chipod:
 
         for ff in ['mm', 'mi', 'pm', 'pi']:
             self.AverageEstimates(self.Jq, ff)
+            self.AverageEstimates(self.Jq, ff, suffix='w')
 
     def LoadSallyChiEstimate(self, fname, estname):
         ''' fname - the mat file you want to read from.
