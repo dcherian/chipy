@@ -156,6 +156,7 @@ class chipod:
     def AverageEstimates(self, var, ff, suffix=''):
         ''' Average like estimates in var. '''
 
+        import warnings
         if 'i' in ff:
             e1 = ff + '11' + suffix
             e2 = ff + '22' + suffix
@@ -165,30 +166,31 @@ class chipod:
 
         ff = ff + suffix
 
-        if e1 in var and e2 in var:
-            var[ff] = dict()
-            var[ff]['time'] = self.chi[e1]['time']
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', 'Mean of empty slice')
+            if e1 in var and e2 in var:
+                var[ff] = dict()
+                var[ff]['time'] = self.chi[e1]['time']
 
-            if type(var[e1]) == np.void:
-                self.χestimates.append(ff)
-                var[ff]['chi'] = np.nanmean(
-                    [var[e1]['chi'], var[e2]['chi']], axis=0)
-                var[ff]['eps'] = np.nanmean(
-                    [var[e1]['eps'], var[e2]['eps']], axis=0)
+                if type(var[e1]) == np.void:
+                    self.χestimates.append(ff)
+                    var[ff]['chi'] = np.nanmean(
+                        [var[e1]['chi'], var[e2]['chi']], axis=0)
+                    var[ff]['eps'] = np.nanmean(
+                        [var[e1]['eps'], var[e2]['eps']], axis=0)
 
-                if (suffix == 'w' and 'eps_Kt' in var[e1].dtype.names
-                    and 'eps_Kt' in var[e2].dtype.names):
-                    var[ff]['eps_Kt'] = np.nanmean(
-                        [var[e1]['eps_Kt'], var[e2]['eps_Kt']], axis=0)
+                    if (suffix == 'w' and 'eps_Kt' in var[e1].dtype.names
+                        and 'eps_Kt' in var[e2].dtype.names):
+                        var[ff]['eps_Kt'] = np.nanmean(
+                            [var[e1]['eps_Kt'], var[e2]['eps_Kt']], axis=0)
 
-                var[ff]['dTdz'] = var[e1]['dTdz']
+                    var[ff]['dTdz'] = var[e1]['dTdz']
 
-                var[ff]['T'] = np.nanmean(
-                    [var[e1]['T'], var[e2]['T']], axis=0)
-                var[ff]['N2'] = var[e1]['N2']
-            else:  # KT
-                var[ff] = np.nanmean(
-                    [var[e1], var[e2]], axis=0)
+                    var[ff]['T'] = np.nanmean([var[e1]['T'], var[e2]['T']],
+                                              axis=0)
+                    var[ff]['N2'] = var[e1]['N2']
+                else:  # KT
+                    var[ff] = np.nanmean([var[e1], var[e2]], axis=0)
 
     def CalcKT(self):
         self.LoadChiEstimates()
