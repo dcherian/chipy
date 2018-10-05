@@ -39,6 +39,8 @@ class chipod:
         self.season = dict()
         self.events = dict()
 
+        self.mixing_seasons = dict()
+
         # import os
         # this lets me import sally's processed output
         # if not os.path.isdir(self.chidir):
@@ -76,8 +78,8 @@ class chipod:
 
     def LoadT1T2(self):
         ''' Loads data from internal χ-pod sensors '''
-
         mat = hs.loadmat(self.procdir + '/temp.mat',
+
                          struct_as_record=False, squeeze_me=True)
 
         self.Tchi = mat['T']
