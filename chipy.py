@@ -85,7 +85,7 @@ class chipod:
         for name in names:
             if ('time' in name or 'spec' in name
                 or name == 'nfft' or name == 'stats'
-                or name == 'wda'):
+                    or name == 'wda'):
                 continue
 
             turb[name] = xr.DataArray(chi[name].squeeze(),
@@ -157,7 +157,7 @@ class chipod:
 
             # convert to matplotline datetime
             if 'time' in self.chi[name].dtype.names:
-                self.chi[name]['time'] = self.chi[name]['time']-366
+                self.chi[name]['time'] = self.chi[name]['time'] - 366
 
         for field in f['Turb'].dtype.names:
             if field in ['mm1', 'mm2', 'pm1', 'pm2',
@@ -169,10 +169,10 @@ class chipod:
                 if 'wda' in f['Turb'][0, 0][field].dtype.names:
                     process_field(self, f['Turb'][0, 0][field][0, 0]['wda'],
                                   name + 'w')
-                    self.χestimates.append(name+'w')
+                    self.χestimates.append(name + 'w')
 
         self.time = self.chi[self.χestimates[0]]['time']
-        self.dt = (self.time[1] - self.time[0])*86400  # in seconds
+        self.dt = (self.time[1] - self.time[0]) * 86400  # in seconds
 
         # import xarray as xr
         # import pandas as pd
@@ -214,7 +214,7 @@ class chipod:
                         [var[e1]['eps'], var[e2]['eps']], axis=0)
 
                     if (suffix == 'w' and 'eps_Kt' in var[e1].dtype.names
-                        and 'eps_Kt' in var[e2].dtype.names):
+                            and 'eps_Kt' in var[e2].dtype.names):
                         var[ff]['eps_Kt'] = np.nanmean(
                             [var[e1]['eps_Kt'], var[e2]['eps_Kt']], axis=0)
 
@@ -295,12 +295,10 @@ class chipod:
         self.chi[estname + '1']['chi'] = self.chi[estname + '1']['chi1']
         self.chi[estname + '2']['chi'] = self.chi[estname + '2']['chi2']
 
-        self.chi[estname + '1']['time'] = \
-                        self.chi[estname + '1']['time'] - 366
-        self.chi[estname + '2']['time'] = \
-                        self.chi[estname + '2']['time'] - 366
-        self.χestimates.append(estname+'1')
-        self.χestimates.append(estname+'2')
+        self.chi[estname + '1']['time'] -= 366
+        self.chi[estname + '2']['time'] -= 366
+        self.χestimates.append(estname + '1')
+        self.χestimates.append(estname + '2')
 
     def LoadPitotOld(self):
         ''' Load pitot data from proc/Praw.mat into self.pitot '''
@@ -348,8 +346,8 @@ class chipod:
 
         pitotrange = self.pitotrange
         hax.hold(True)
-        hax.plot_date(dcpy.util.datenum2datetime(pitot['time'][0,0][pitotrange]),
-                      pitot['W'][0,0][pitotrange], '-')
+        hax.plot_date(dcpy.util.datenum2datetime(
+            pitot['time'][0, 0][pitotrange]), pitot['W'][0, 0][pitotrange], '-')
         hax.set_ylabel('Raw Pitot voltage (V)')
 
     def CompareChipodCTD(self):
@@ -357,7 +355,7 @@ class chipod:
         import matplotlib.pyplot as plt
 
         plt.figure()
-        plt.subplot2grid((4,2), (0,0), colspan=2)
+        plt.subplot2grid((4, 2), (0, 0), colspan=2)
         plt.hold(True)
         plt.plot_date(Tctd1.time, Tctd1.T, '-')
         plt.plot_date(Tctd2.time, Tctd2.T, '-')
@@ -368,30 +366,30 @@ class chipod:
                     "χ-pod 15 m T₁", "χ-pod 15m T₂"])
         plt.ylabel('Temperature (C)')
 
-        plt.subplot2grid((4,2), (1,0), colspan=2)
+        plt.subplot2grid((4, 2), (1, 0), colspan=2)
         plt.hold(True)
         plt.plot_date(Tchi.time[chirange], Tchi.T1[chirange], '-')
         plt.plot_date(Tchi.time[chirange], Tchi.T2[chirange], '-')
         plt.legend(["χ-pod 15 m T₁", "χ-pod 15m T₂"])
         plt.ylabel('Temperature (C)')
 
-        plt.subplot2grid((4,2),(2,0))
+        plt.subplot2grid((4, 2), (2, 0))
         plt.plot(Tctd1.T, Tctd2.T, '.')
         plt.xlabel('CTD T at 10m')
         plt.ylabel('CTD T at 20m')
         dcpy.plots.line45()
 
-        plt.subplot2grid((4,2), (2,1))
+        plt.subplot2grid((4, 2), (2, 1))
         plt.plot(Tchi.T1[chirange], Tchi.T2[chirange], '.')
         plt.xlabel('χ-pod T₁')
         plt.ylabel('χ-pod T₂')
         dcpy.plots.line45()
 
-        plt.subplot2grid((4,2),(3,0))
-        T12 = (Tctd1.T + Tctd2.T)/2
+        plt.subplot2grid((4, 2), (3, 0))
+        T12 = (Tctd1.T + Tctd2.T) / 2
         Tchi12 = np.interp(mpl.dates.date2num(Tctd1.time),
                            mpl.dates.date2num(Tchi.time[chirange]),
-                           (Tchi.T1[chirange] + Tchi.T2[chirange])/2)
+                           (Tchi.T1[chirange] + Tchi.T2[chirange]) / 2)
         plt.plot(T12, Tchi12, '.')
         plt.xlabel('CTD (10m + 20m)/2')
         plt.ylabel('χ-pod (T₁ + T₂)/2')
@@ -402,19 +400,19 @@ class chipod:
     def FilterEstimate(self, kind, time, var, order=1,
                        filter_len=None, decimate=False):
 
-
-        dt = np.diff(time[0:2])*86400
+        dt = np.diff(time[0:2]) * 86400
         if filter_len is not None:
             if kind == 'bandpass':
                 import dcpy.ts
                 from dcpy.util import MovingAverage
                 filter_len = np.array(filter_len)
                 # runnning average to remove gaps
-                var = MovingAverage(var, filter_len.min()/2/dt, decimate=False)
-                var = dcpy.ts.BandPassButter(var, 1/filter_len, dt,
+                var = MovingAverage(
+                    var, filter_len.min() / 2 / dt, decimate=False)
+                var = dcpy.ts.BandPassButter(var, 1 / filter_len, dt,
                                              order=order)
             elif kind in ['mean', 'median', 'var', 'std', 'Jq']:
-                filter_len = np.int(np.floor(filter_len/dt))
+                filter_len = np.int(np.floor(filter_len / dt))
                 if np.mod(filter_len, 2) == 0:
                     filter_len = filter_len - 1
 
@@ -440,13 +438,13 @@ class chipod:
                 if decimate is True:
                     # subsample
                     L = filter_len
-                    Lb2 = np.int(np.floor(filter_len/2))
-                    time = time[Lb2+1::L-1]
-                    var = var[Lb2+1::L-1]
+                    Lb2 = np.int(np.floor(filter_len / 2))
+                    time = time[Lb2 + 1::L - 1]
+                    var = var[Lb2 + 1::L - 1]
 
             elif kind == 'hann' or kind is None:
                 import dcpy.util
-                filter_len = np.int(np.floor(filter_len/dt))
+                filter_len = np.int(np.floor(filter_len / dt))
                 var = dcpy.util.smooth(var, filter_len, preserve_nan=True)
 
         return time, var
@@ -530,7 +528,7 @@ class chipod:
         t, χ = self.FilterEstimate('mean', self.time, var,
                                    filter_len=filter_len,
                                    decimate=True)
-        dt = np.nanmean(np.diff(t)*86400)
+        dt = np.nanmean(np.diff(t) * 86400)
 
         if SubsetLength is not None:
             SubsetLength /= dt
@@ -553,13 +551,13 @@ class chipod:
             ax = SubplotHost(fig, 1, 1, 1)
             fig.add_subplot(ax)
 
-        hdl = ax.loglog(1/f, S, label=str(self.depth)+' m')
+        hdl = ax.loglog(1 / f, S, label=str(self.depth) + ' m')
         if len(conf) > 2:
-            ax.fill_between(1/f, conf[:, 0], conf[:, 1],
+            ax.fill_between(1 / f, conf[:, 0], conf[:, 1],
                             color=hdl[0].get_color(), alpha=0.3)
 
         ax.set_ylabel('PSD( ' + titlestr + ' )' + addstr)
-        ax.set_xlim([np.min(1/f), np.max(1/f)])
+        ax.set_xlim([np.min(1 / f), np.max(1 / f)])
 
         if ticks is not None:
             ax.set_xticks(ticks)
@@ -573,7 +571,7 @@ class chipod:
             norm = 3600
             tstr = 'hours'
 
-        tickstr = [str(np.round(xx/norm, 2)) for xx in ticks]
+        tickstr = [str(np.round(xx / norm, 2)) for xx in ticks]
         ax.set_xticklabels(tickstr)
         ax.set_xlabel('Period (' + tstr + ')')
         ax.legend()
@@ -686,7 +684,7 @@ class chipod:
             t, N2 = self.FilterEstimate('mean', time=time[tind],
                                         var=self.chi[est]['N2'][tind],
                                         filter_len=filter_len)
-            axN2.plot(t, N2, label=self.name+' | '+est, linewidth=0.5)
+            axN2.plot(t, N2, label=self.name + ' | ' + est, linewidth=0.5)
             axN2.set_ylabel('$N^2$')
             plt.legend()
 
@@ -711,7 +709,7 @@ class chipod:
             if filter_len is None:
                 # at minimum, average differentiator
                 # to same time resolution as χ estimate
-                fl = (time[2]-time[1])*86400
+                fl = (time[2] - time[1]) * 86400
             else:
                 fl = filter_len
 
@@ -758,7 +756,7 @@ class chipod:
         axT.set_title('')
 
         self.PlotEstimate('chi', est=est, decimate=True,
-                          filt = 'median', linewidth=0.5,
+                          filt='median', linewidth=0.5,
                           filter_len=filter_len, tind=tind,
                           hax=axχ)
         axχ.set_title('')
@@ -821,7 +819,7 @@ class chipod:
 
         for sidx, ss in enumerate(self.season):
             _, varex = self.ExtractSeason(time, var, ss)
-            pos.append(x0 + n*(sidx+1)+(idx-0.5)/3)
+            pos.append(x0 + n * (sidx + 1) + (idx - 0.5) / 3)
             if len(varex) == 0:
                 continue
             style = {'color': cpodcolor[idx]}
@@ -838,7 +836,7 @@ class chipod:
         ax.set_xticks(pos)
 
         ax.set_xticklabels(self.season)
-        ax.set_xlim([pos[0]-0.5-x0, pos[-1]+0.5])
+        ax.set_xlim([pos[0] - 0.5 - x0, pos[-1] + 0.5])
         ax.set_ylabel('log$_{10} K_T$')
         ax.set_xlabel('season')
 
