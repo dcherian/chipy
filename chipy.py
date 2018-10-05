@@ -1,8 +1,10 @@
-import numpy as np
+import dcpy.util
 import hdf5storage as hs
-import xarray as xr
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+
+import xarray as xr
 
 
 class chipod:
