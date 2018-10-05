@@ -63,6 +63,36 @@ class chipod:
         self.CalcKT()
         self.CalcJq()
 
+        # self.convert_to_xarray()
+
+    def convert_to_xarray(self, estimate='best'):
+        ''' Makes xarray dataset of best estimate. '''
+
+        if estimate == 'best':
+            chi = self.chi[self.best]
+        else:
+            chi = self.chi[estimate]
+
+        try:
+            names = chi.dtype.names
+        except AttributeError:
+            names = chi
+
+        dims = ['time']
+        coords = {'time': dcpy.util.mdatenum2dt64(chi['time'])}
+
+        turb = xr.Dataset()
+        for name in names:
+            if ('time' in name or 'spec' in name
+                or name == 'nfft' or name == 'stats'
+                or name == 'wda'):
+                continue
+
+            turb[name] = xr.DataArray(chi[name].squeeze(),
+                                      dims=dims, coords=coords)
+
+        return turb
+
     def LoadCTD(self):
         ''' Loads data from proc/T_m.mat '''
 
