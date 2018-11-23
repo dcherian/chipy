@@ -85,7 +85,7 @@ class chipod:
         for name in names:
             if ('time' in name or 'spec' in name
                 or name == 'nfft' or name == 'stats'
-                    or name == 'wda'):
+                    or name == 'wda' or name == 'sign_used'):
                 continue
 
             turb[name] = xr.DataArray(chi[name].squeeze(),
