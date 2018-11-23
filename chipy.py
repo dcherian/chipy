@@ -52,7 +52,7 @@ class chipod:
         self.adcp = dict([])
 
         # derived quantities
-        self.chi = dict()
+        self.turb = dict()
         self.KT = dict()
         self.Jq = dict()
 
@@ -69,9 +69,9 @@ class chipod:
         ''' Makes xarray dataset of best estimate. '''
 
         if estimate == 'best':
-            chi = self.chi[self.best]
+            chi = self.turb[self.best]
         else:
-            chi = self.chi[estimate]
+            chi = self.turb[estimate]
 
         try:
             names = chi.dtype.names
@@ -131,7 +131,7 @@ class chipod:
     def LoadChiEstimates(self):
         ''' Loads all calculated chi estimates using h5py '''
 
-        if not self.chi == dict([]):
+        if not self.turb == dict([]):
             return
 
         try:
@@ -144,20 +144,20 @@ class chipod:
 
         def process_field(obj, struct, name):
             try:
-                self.chi[name] = struct[0, 0]
-            except:
-                self.chi[name] = struct
+                self.turb[name] = struct[0, 0]
+            except ValueError:
+                self.turb[name] = struct
 
             for fld in ['eps', 'Jq', 'Kt', 'chi', 'dTdz',
                         'time', 'N2', 'T', 'S', 'eps_Kt']:
                 try:
-                    self.chi[name][fld] = self.chi[name][fld][0]
+                    self.turb[name][fld] = self.turb[name][fld][0]
                 except:
                     pass
 
             # convert to matplotline datetime
-            if 'time' in self.chi[name].dtype.names:
-                self.chi[name]['time'] = self.chi[name]['time'] - 366
+            if 'time' in self.turb[name].dtype.names:
+                self.turb[name]['time'] = self.turb[name]['time'] - 366
 
         for field in f['Turb'].dtype.names:
             if field in ['mm1', 'mm2', 'pm1', 'pm2',
@@ -171,21 +171,22 @@ class chipod:
                                   name + 'w')
                     self.χestimates.append(name + 'w')
 
-        self.time = self.chi[self.χestimates[0]]['time']
+
+        self.time = self.turb[self.χestimates[0]]['time']
         self.dt = (self.time[1] - self.time[0]) * 86400  # in seconds
 
         # import xarray as xr
         # import pandas as pd
         # self = c526
-        # mm1 = xr.Dataset({'χ': ('time', self.chi[name]['chi']),
-        #                   'Jq': ('time', self.chi[name]['Jq']),
-        #                   coords={'time': ('time', self.chi[name]['time'])}
+        # mm1 = xr.Dataset({'χ': ('time', self.turb[name]['chi']),
+        #                   'Jq': ('time', self.turb[name]['Jq']),
+        #                   coords={'time': ('time', self.turb[name]['time'])}
         #                   })
 
         # average together similar estimates
         for ff in ['mm', 'pm', 'mi', 'pi']:
-            self.AverageEstimates(self.chi, ff)
-            self.AverageEstimates(self.chi, ff, suffix='w')
+            self.AverageEstimates(self.turb, ff)
+            self.AverageEstimates(self.turb, ff, suffix='w')
 
     def AverageEstimates(self, var, ff, suffix=''):
         ''' Average like estimates in var. '''
@@ -204,7 +205,7 @@ class chipod:
             warnings.filterwarnings('ignore', 'Mean of empty slice')
             if e1 in var and e2 in var:
                 var[ff] = dict()
-                var[ff]['time'] = self.chi[e1]['time']
+                var[ff]['time'] = self.turb[e1]['time']
 
                 if type(var[e1]) == np.void:
                     self.χestimates.append(ff)
@@ -232,12 +233,12 @@ class chipod:
         for est in self.χestimates:
             if '1' in est or '2' in est:
                 # not a combined estimate
-                if 'Kt' in self.chi[est].dtype.names:
-                    self.KT[est] = self.chi[est]['Kt'][:]
+                if 'Kt' in self.turb[est].dtype.names:
+                    self.KT[est] = self.turb[est]['Kt'][:]
                 else:
                     raise ValueError(est + '.Kt not in ' + self.name + '.chi')
-                    # chi = self.chi[est]['chi'][:]
-                    # dTdz = self.chi[est]['dTdz'][:]
+                    # chi = self.turb[est]['chi'][:]
+                    # dTdz = self.turb[est]['dTdz'][:]
                     # self.KT[est] = (0.5*chi)/dTdz**2
 
         for ff in ['mm', 'mi', 'pm', 'pi']:
@@ -250,17 +251,17 @@ class chipod:
     def CalcJq(self):
         for est in self.χestimates:
             if '1' in est or '2' in est:
-                if 'Jq' in self.chi[est].dtype.names:
-                    self.Jq[est] = self.chi[est]['Jq'][:]
-                    # mindTdz = self.chi['min_dTdz']
+                if 'Jq' in self.turb[est].dtype.names:
+                    self.Jq[est] = self.turb[est]['Jq'][:]
+                    # mindTdz = self.turb['min_dTdz']
                     # mask = np.logical_and(np.abs(self.Jq[est]) > 1e3,
-                    #                       np.abs(self.chi[est]['dTdz'])
+                    #                       np.abs(self.turb[est]['dTdz'])
                     #                       < 0.02)
-                    # mask = np.logical_or(mask, np.abs(self.chi[est]['dTdz'])
+                    # mask = np.logical_or(mask, np.abs(self.turb[est]['dTdz'])
                     #                      < 0.002)
                     # self.Jq[est][mask] = np.nan
-                    # self.chi[est]['chi'][mask] = np.nan
-                    # self.chi[est]['eps'][mask] = np.nan
+                    # self.turb[est]['chi'][mask] = np.nan
+                    # self.turb[est]['eps'][mask] = np.nan
                     # self.KT[est][mask] = np.nan
                 else:
                     raise ValueError(est + '.Jq not in ' + self.name + '.chi')
@@ -273,7 +274,7 @@ class chipod:
         ''' fname - the mat file you want to read from.
             estname - what you want to name the estimate.
 
-            Output saved as self.chi[estname] '''
+            Output saved as self.turb[estname] '''
 
         import os
         from scipy.io import loadmat
@@ -284,19 +285,19 @@ class chipod:
         data = loadmat(fname)
 
         chi = data['avgchi']
-        self.chi[estname + '1'] = dict()
-        self.chi[estname + '2'] = dict()
+        self.turb[estname + '1'] = dict()
+        self.turb[estname + '2'] = dict()
 
         for field in chi.dtype.names:
             temp = chi[field][0][0][0]
-            self.chi[estname + '1'][field] = temp
-            self.chi[estname + '2'][field] = temp
+            self.turb[estname + '1'][field] = temp
+            self.turb[estname + '2'][field] = temp
 
-        self.chi[estname + '1']['chi'] = self.chi[estname + '1']['chi1']
-        self.chi[estname + '2']['chi'] = self.chi[estname + '2']['chi2']
+        self.turb[estname + '1']['chi'] = self.turb[estname + '1']['chi1']
+        self.turb[estname + '2']['chi'] = self.turb[estname + '2']['chi2']
 
-        self.chi[estname + '1']['time'] -= 366
-        self.chi[estname + '2']['time'] -= 366
+        self.turb[estname + '1']['time'] -= 366
+        self.turb[estname + '2']['time'] -= 366
         self.χestimates.append(estname + '1')
         self.χestimates.append(estname + '2')
 
@@ -489,7 +490,7 @@ class chipod:
             hax = plt.gca()
 
         try:
-            time = self.chi[est]['time'].squeeze()
+            time = self.turb[est]['time'].squeeze()
         except:
             time = self.time
 
@@ -612,8 +613,8 @@ class chipod:
         except:
             # should only run when comparing
             # against sally's estimate.
-            t1 = self.chi[est1]['time'].squeeze()
-            t2 = self.chi[est2]['time'].squeeze()
+            t1 = self.turb[est1]['time'].squeeze()
+            t2 = self.turb[est2]['time'].squeeze()
             var1 = np.interp(t2, t1, var1.squeeze())
             mask12 = np.isnan(var1) | np.isnan(var2)
 
@@ -651,8 +652,8 @@ class chipod:
         if est == 'best':
             est = self.best
 
-        self.chi[est]['time'] -= dt
-        time = self.chi[est]['time']
+        self.turb[est]['time'] -= dt
+        time = self.turb[est]['time']
 
         if tind is None:
             tind = range(len(time))
@@ -682,14 +683,14 @@ class chipod:
 
         if debug is False:
             t, N2 = self.FilterEstimate('mean', time=time[tind],
-                                        var=self.chi[est]['N2'][tind],
+                                        var=self.turb[est]['N2'][tind],
                                         filter_len=filter_len)
             axN2.plot(t, N2, label=self.name + ' | ' + est, linewidth=0.5)
             axN2.set_ylabel('$N^2$')
             plt.legend()
 
             t, Tz = self.FilterEstimate('mean', time=time[tind],
-                                        var=self.chi[est]['dTdz'][tind],
+                                        var=self.turb[est]['dTdz'][tind],
                                         filter_len=filter_len)
             axTz.plot_date(t, Tz, '-', linewidth=0.5)
             axTz.axhline(0, color='k', zorder=-1)
@@ -786,7 +787,7 @@ class chipod:
             ax1.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
 
         plt.tight_layout(h_pad=-0.1)
-        self.chi[est]['time'] += dt
+        self.turb[est]['time'] += dt
 
     def SeasonalSummary(self, ax=None, idx: int=0,
                         filter_len: int=86400):
@@ -857,13 +858,13 @@ class chipod:
             est = self.best
 
         if varname == 'eps' or varname == 'epsilon' or varname == 'ε':
-            var = self.chi[est]['eps'][:].squeeze()
+            var = self.turb[est]['eps'][:].squeeze()
             titlestr = '$ε$'
             yscale = 'log'
             grdflag = True
 
         if varname == 'chi' or varname == 'χ':
-            var = self.chi[est]['chi'][:].squeeze()
+            var = self.turb[est]['chi'][:].squeeze()
             titlestr = '$χ$'
             yscale = 'log'
             grdflag = True
@@ -881,7 +882,7 @@ class chipod:
             grdflag = False
 
         if varname == 'T':
-            var = self.chi[est]['T'][:].squeeze()
+            var = self.turb[est]['T'][:].squeeze()
             titlestr = '$T$'
             yscale = 'linear'
             grdflag = False
