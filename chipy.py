@@ -53,6 +53,7 @@ class chipod:
 
         # derived quantities
         self.turb = dict()
+        self.chi = dict()
         self.KT = dict()
         self.Jq = dict()
 
@@ -185,6 +186,9 @@ class chipod:
         for ff in ['mm', 'pm', 'mi', 'pi']:
             self.AverageEstimates(self.turb, ff)
             self.AverageEstimates(self.turb, ff, suffix='w')
+
+        for est in self.χestimates:
+            self.chi[est] = self.convert_to_xarray(estimate=est)
 
     def AverageEstimates(self, var, ff, suffix=''):
         ''' Average like estimates in var. '''
