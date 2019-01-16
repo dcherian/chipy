@@ -144,7 +144,7 @@ class chipod:
             # not an hdf5 file
             f = sp.io.loadmat(self.chifile)
 
-        def process_field(obj, struct, name):
+        def process_field(obj, struct, name, Sz):
 
             self.turb[name] = xr.Dataset()
 
@@ -167,27 +167,26 @@ class chipod:
                     struct[fld].squeeze(), dims=['time'],
                     coords={'time': time64})
 
-            if 'mm' in name:
-                Tzmat = sp.io.loadmat(self.basedir + self.unit +
-                                      '/input/dTdz_m.mat')
-                Sz = xr.DataArray(
-                    Tzmat['Tz_m']['Sz'][0, 0][0],
-                    dims=['time'],
-                    coords={'time': dcpy.util.mdatenum2dt64(
-                        Tzmat['Tz_m']['time'][0, 0][0] - 366)})
-
                 self.turb[name]['Sz'] = Sz.interp(time=self.turb[name].time)
+
+        # my only source of Sz is moorings so always read that in
+        Tzmat = sp.io.loadmat(self.basedir + self.unit + '/input/dTdz_m.mat')
+        Sz = xr.DataArray(
+            Tzmat['Tz_m']['Sz'][0, 0][0],
+            dims=['time'],
+            coords={'time': dcpy.util.mdatenum2dt64(
+                Tzmat['Tz_m']['time'][0, 0][0] - 366)})
 
         for field in f['Turb'].dtype.names:
             if field in ['mm1', 'mm2', 'pm1', 'pm2',
                          'mi11', 'mi22', 'pi11', 'pi22']:
                 name = field
                 self.χestimates.append(name)
-                process_field(self, f['Turb'][0, 0][field], name)
+                process_field(self, f['Turb'][0, 0][field], name, Sz)
 
                 if 'wda' in f['Turb'][0, 0][field].dtype.names:
                     process_field(self, f['Turb'][0, 0][field][0, 0]['wda'],
-                                  name + 'w')
+                                  name + 'w', Sz)
                     self.χestimates.append(name + 'w')
 
         self.time = self.turb[self.χestimates[0]]['time']
