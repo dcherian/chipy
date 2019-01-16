@@ -60,8 +60,6 @@ class chipod:
         self.LoadChiEstimates()
         self.LoadTzi()
         self.LoadCTD()
-        self.CalcKT()
-        self.CalcJq()
 
         # self.convert_to_xarray()
 
@@ -228,47 +226,10 @@ class chipod:
                     var[ff] = np.nanmean([var[e1], var[e2]], axis=0)
 
     def CalcKT(self):
-        self.LoadChiEstimates()
-
-        for est in self.χestimates:
-            if '1' in est or '2' in est:
-                # not a combined estimate
-                if 'Kt' in self.turb[est].dtype.names:
-                    self.KT[est] = self.turb[est]['Kt'][:]
-                else:
-                    raise ValueError(est + '.Kt not in ' + self.name + '.chi')
-                    # chi = self.turb[est]['chi'][:]
-                    # dTdz = self.turb[est]['dTdz'][:]
-                    # self.KT[est] = (0.5*chi)/dTdz**2
-
-        for ff in ['mm', 'mi', 'pm', 'pi']:
-            self.AverageEstimates(self.KT, ff)
-            self.AverageEstimates(self.KT, ff, suffix='w')
-
-        # for est in self.KT:
-        #     self.KT[est][np.isnan(self.KT[est])] = 1.5e-7
+        raise ValueError('CalcKT is deprecated.')
 
     def CalcJq(self):
-        for est in self.χestimates:
-            if '1' in est or '2' in est:
-                if 'Jq' in self.turb[est].dtype.names:
-                    self.Jq[est] = self.turb[est]['Jq'][:]
-                    # mindTdz = self.turb['min_dTdz']
-                    # mask = np.logical_and(np.abs(self.Jq[est]) > 1e3,
-                    #                       np.abs(self.turb[est]['dTdz'])
-                    #                       < 0.02)
-                    # mask = np.logical_or(mask, np.abs(self.turb[est]['dTdz'])
-                    #                      < 0.002)
-                    # self.Jq[est][mask] = np.nan
-                    # self.turb[est]['chi'][mask] = np.nan
-                    # self.turb[est]['eps'][mask] = np.nan
-                    # self.KT[est][mask] = np.nan
-                else:
-                    raise ValueError(est + '.Jq not in ' + self.name + '.chi')
-
-        for ff in ['mm', 'mi', 'pm', 'pi']:
-            self.AverageEstimates(self.Jq, ff)
-            self.AverageEstimates(self.Jq, ff, suffix='w')
+        raise ValueError('CalcJq is deprecated.')
 
     def LoadSallyChiEstimate(self, fname, estname):
         ''' fname - the mat file you want to read from.
