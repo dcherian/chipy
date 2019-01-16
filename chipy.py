@@ -211,10 +211,9 @@ class chipod:
 
                 if type(var[e1]) == np.void:
                     self.χestimates.append(ff)
-                    var[ff]['chi'] = np.nanmean(
-                        [var[e1]['chi'], var[e2]['chi']], axis=0)
-                    var[ff]['eps'] = np.nanmean(
-                        [var[e1]['eps'], var[e2]['eps']], axis=0)
+                    for vv in ['chi', 'eps', 'Kt', 'Jq']:
+                        var[ff][vv] = np.nanmean(
+                            [var[e1][vv], var[e2][vv]], axis=0)
 
                     if (suffix == 'w' and 'eps_Kt' in var[e1].dtype.names
                             and 'eps_Kt' in var[e2].dtype.names):
