@@ -3,6 +3,7 @@ import hdf5storage as hs
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy as sp
 
 import xarray as xr
 
@@ -138,8 +139,7 @@ class chipod:
             f = h5py.File(self.chifile, 'r')
         except OSError:
             # not an hdf5 file
-            from scipy.io import loadmat
-            f = loadmat(self.chifile)
+            f = sp.io.loadmat(self.chifile)
 
         def process_field(obj, struct, name):
             try:
@@ -169,7 +169,6 @@ class chipod:
                     process_field(self, f['Turb'][0, 0][field][0, 0]['wda'],
                                   name + 'w')
                     self.χestimates.append(name + 'w')
-
 
         self.time = self.turb[self.χestimates[0]]['time']
         self.dt = (self.time[1] - self.time[0]) * 86400  # in seconds
@@ -241,12 +240,10 @@ class chipod:
             Output saved as self.turb[estname] '''
 
         import os
-        from scipy.io import loadmat
-
         if not os.path.exists(fname):
             raise FileNotFoundError(fname)
 
-        data = loadmat(fname)
+        data = sp.io.loadmat(fname)
 
         chi = data['avgchi']
         self.turb[estname + '1'] = dict()
@@ -312,7 +309,8 @@ class chipod:
         pitotrange = self.pitotrange
         hax.hold(True)
         hax.plot_date(dcpy.util.datenum2datetime(
-            pitot['time'][0, 0][pitotrange]), pitot['W'][0, 0][pitotrange], '-')
+            self.pitot['time'][0, 0][pitotrange]),
+            self.pitot['W'][0, 0][pitotrange], '-')
         hax.set_ylabel('Raw Pitot voltage (V)')
 
     def CompareChipodCTD(self):
@@ -508,7 +506,7 @@ class chipod:
             normval = np.trapz(S, f)
             S /= normval
             conf /= normval
-            addstr = '/ $\int$ PSD'
+            addstr = r'/ $\int$ PSD'
 
         from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
         if ax is None:
@@ -772,7 +770,6 @@ class chipod:
             ax = plt.gca()
             ax.set_title(self.name)
 
-        varname = 'KT'
         var = self.KT[self.best]
         time = self.time
         label.append(self.name)
