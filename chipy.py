@@ -142,21 +142,38 @@ class chipod:
             f = sp.io.loadmat(self.chifile)
 
         def process_field(obj, struct, name):
+
+            self.turb[name] = xr.Dataset()
+
             try:
-                self.turb[name] = struct[0, 0]
+                struct = struct[0, 0]
             except ValueError:
-                self.turb[name] = struct
+                pass
+
+            # convert to dt64
+            if 'time' in struct.dtype.names:
+                time64 = dcpy.util.mdatenum2dt64(
+                    struct['time'].squeeze() - 366)
 
             for fld in ['eps', 'Jq', 'Kt', 'chi', 'dTdz',
-                        'time', 'N2', 'T', 'S', 'eps_Kt']:
-                try:
-                    self.turb[name][fld] = self.turb[name][fld][0]
-                except:
-                    pass
+                        'N2', 'T', 'S', 'eps_Kt']:
+                if fld not in struct.dtype.names:
+                    continue
 
-            # convert to matplotline datetime
-            if 'time' in self.turb[name].dtype.names:
-                self.turb[name]['time'] = self.turb[name]['time'] - 366
+                self.turb[name][fld] = xr.DataArray(
+                    struct[fld].squeeze(), dims=['time'],
+                    coords={'time': time64})
+
+            if 'mm' in name:
+                Tzmat = sp.io.loadmat(self.basedir + self.unit +
+                                      '/input/dTdz_m.mat')
+                Sz = xr.DataArray(
+                    Tzmat['Tz_m']['Sz'][0, 0][0],
+                    dims=['time'],
+                    coords={'time': dcpy.util.mdatenum2dt64(
+                        Tzmat['Tz_m']['time'][0, 0][0] - 366)})
+
+                self.turb[name]['Sz'] = Sz.interp(time=self.turb[name].time)
 
         for field in f['Turb'].dtype.names:
             if field in ['mm1', 'mm2', 'pm1', 'pm2',
@@ -173,21 +190,12 @@ class chipod:
         self.time = self.turb[self.χestimates[0]]['time']
         self.dt = (self.time[1] - self.time[0]) * 86400  # in seconds
 
-        # import xarray as xr
-        # import pandas as pd
-        # self = c526
-        # mm1 = xr.Dataset({'χ': ('time', self.turb[name]['chi']),
-        #                   'Jq': ('time', self.turb[name]['Jq']),
-        #                   coords={'time': ('time', self.turb[name]['time'])}
-        #                   })
-
         # average together similar estimates
         for ff in ['mm', 'pm', 'mi', 'pi']:
             self.AverageEstimates(self.turb, ff)
             self.AverageEstimates(self.turb, ff, suffix='w')
 
-        for est in self.χestimates:
-            self.chi[est] = self.convert_to_xarray(estimate=est)
+        self.chi = self.turb
 
     def AverageEstimates(self, var, ff, suffix=''):
         ''' Average like estimates in var. '''
@@ -202,30 +210,29 @@ class chipod:
 
         ff = ff + suffix
 
+        variables = ['chi', 'eps', 'eps_Kt', 'Kt', 'Jq', 'T']
+        names = ['$χ$', '$ε$', '$ε$', '$K_T$', '$J_q^t$', '$T$']
+        units = ['', 'W/kg', 'W/kg', 'm²/s', 'W/m²', 'C']
+
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', 'Mean of empty slice')
             if e1 in var and e2 in var:
-                var[ff] = dict()
+                var[ff] = xr.Dataset()
                 var[ff]['time'] = self.turb[e1]['time']
 
-                if type(var[e1]) == np.void:
-                    self.χestimates.append(ff)
-                    for vv in ['chi', 'eps', 'Kt', 'Jq']:
-                        var[ff][vv] = np.nanmean(
-                            [var[e1][vv], var[e2][vv]], axis=0)
+                self.χestimates.append(ff)
+                for vv, nn, uu in zip(variables, names, units):
+                    if vv not in var[e1]:
+                        continue
 
-                    if (suffix == 'w' and 'eps_Kt' in var[e1].dtype.names
-                            and 'eps_Kt' in var[e2].dtype.names):
-                        var[ff]['eps_Kt'] = np.nanmean(
-                            [var[e1]['eps_Kt'], var[e2]['eps_Kt']], axis=0)
+                    var[ff][vv] = var[e1][vv].copy(
+                        data=np.nanmean([var[e1][vv].values,
+                                         var[e2][vv].values], axis=0))
+                    var[ff][vv].attrs = {'long_name': nn, 'units': uu}
 
-                    var[ff]['dTdz'] = var[e1]['dTdz']
-
-                    var[ff]['T'] = np.nanmean([var[e1]['T'], var[e2]['T']],
-                                              axis=0)
-                    var[ff]['N2'] = var[e1]['N2']
-                else:  # KT
-                    var[ff] = np.nanmean([var[e1], var[e2]], axis=0)
+                var[ff]['dTdz'] = var[e1]['dTdz']
+                var[ff]['Sz'] = var[e1]['Sz']
+                var[ff]['N2'] = var[e1]['N2']
 
     def CalcKT(self):
         raise ValueError('CalcKT is deprecated.')
