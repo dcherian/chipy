@@ -54,7 +54,6 @@ class chipod:
 
         # derived quantities
         self.turb = dict()
-        self.chi = dict()
         self.KT = dict()
         self.Jq = dict()
 
@@ -64,6 +63,10 @@ class chipod:
         self.LoadCTD()
 
         # self.convert_to_xarray()
+
+    @property
+    def chi(self):
+        return self.turb
 
     def convert_to_xarray(self, estimate='best'):
         ''' Makes xarray dataset of best estimate. '''
@@ -194,8 +197,6 @@ class chipod:
         for ff in ['mm', 'pm', 'mi', 'pi']:
             self.AverageEstimates(self.turb, ff)
             self.AverageEstimates(self.turb, ff, suffix='w')
-
-        self.chi = self.turb
 
     def AverageEstimates(self, var, ff, suffix=''):
         ''' Average like estimates in var. '''
