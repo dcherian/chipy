@@ -160,7 +160,7 @@ class chipod:
                     struct['time'].squeeze() - 366)
 
             for fld in ['eps', 'Jq', 'Kt', 'chi', 'dTdz',
-                        'N2', 'T', 'S', 'eps_Kt']:
+                        'N2', 'T', 'S', 'eps_Kt', 'Ks']:
                 if fld not in struct.dtype.names:
                     continue
 
@@ -211,9 +211,9 @@ class chipod:
 
         ff = ff + suffix
 
-        variables = ['chi', 'eps', 'eps_Kt', 'Kt', 'Jq', 'T']
-        names = ['$χ$', '$ε$', '$ε$', '$K_T$', '$J_q^t$', '$T$']
-        units = ['', 'W/kg', 'W/kg', 'm²/s', 'W/m²', 'C']
+        variables = ['chi', 'eps', 'eps_Kt', 'Kt', 'Ks', 'Jq', 'T']
+        names = ['$χ$', '$ε$', '$ε$', '$K_T$', '$K_S$''$J_q^t$', '$T$']
+        units = ['', 'W/kg', 'W/kg', 'm²/s', 'm²/s', 'W/m²', 'C']
 
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', 'Mean of empty slice')
